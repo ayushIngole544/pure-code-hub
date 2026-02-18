@@ -1,44 +1,31 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Code2, Users, BookOpen, Zap, CheckCircle, ArrowRight } from 'lucide-react';
 import { useEffect } from 'react';
 
 export default function Index() {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      const dashboardPaths = {
+      const dashboardPaths: Record<UserRole, string> = {
         teacher: '/teacher/dashboard',
         student: '/student/dashboard',
         professional: '/professional/dashboard',
+        admin: '/teacher/dashboard',
       };
       navigate(dashboardPaths[user.role]);
     }
   }, [isAuthenticated, user, navigate]);
 
+  if (loading) return null;
+
   const features = [
-    {
-      icon: <BookOpen className="w-6 h-6" />,
-      title: 'Interactive Assessments',
-      description: 'Create and solve coding challenges with real-time feedback',
-    },
-    {
-      icon: <Users className="w-6 h-6" />,
-      title: 'Role-Based Access',
-      description: 'Tailored experiences for students, teachers, and professionals',
-    },
-    {
-      icon: <Zap className="w-6 h-6" />,
-      title: 'AI-Powered Questions',
-      description: 'Generate questions automatically based on difficulty and topic',
-    },
-    {
-      icon: <CheckCircle className="w-6 h-6" />,
-      title: 'Progress Tracking',
-      description: 'Monitor your improvement with detailed analytics',
-    },
+    { icon: <BookOpen className="w-6 h-6" />, title: 'Interactive Assessments', description: 'Create and solve coding challenges with real-time feedback' },
+    { icon: <Users className="w-6 h-6" />, title: 'Role-Based Access', description: 'Tailored experiences for students, teachers, and professionals' },
+    { icon: <Zap className="w-6 h-6" />, title: 'AI-Powered Questions', description: 'Generate questions automatically based on difficulty and topic' },
+    { icon: <CheckCircle className="w-6 h-6" />, title: 'Progress Tracking', description: 'Monitor your improvement with detailed analytics' },
   ];
 
   return (
@@ -137,38 +124,18 @@ export default function Index() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="card-elevated text-center hover:border-primary transition-colors cursor-pointer" onClick={() => navigate('/login')}>
-              <div className="w-16 h-16 bg-success-light rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-8 h-8 text-easy" />
+            {[
+              { title: 'Student', desc: 'Solve assessments, track progress, and improve your coding skills', icon: <BookOpen className="w-8 h-8 text-easy" />, bg: 'bg-success-light' },
+              { title: 'Teacher', desc: 'Create assessments, monitor students, and manage your workspace', icon: <Users className="w-8 h-8 text-primary" />, bg: 'bg-info-light' },
+              { title: 'Professional', desc: 'Sharpen your skills with challenging problems and track your growth', icon: <Zap className="w-8 h-8 text-warning" />, bg: 'bg-warning-light' },
+            ].map(card => (
+              <div key={card.title} className="card-elevated text-center hover:border-primary transition-colors cursor-pointer" onClick={() => navigate('/login')}>
+                <div className={`w-16 h-16 ${card.bg} rounded-full flex items-center justify-center mx-auto mb-4`}>{card.icon}</div>
+                <h3 className="text-xl font-semibold text-foreground mb-2">{card.title}</h3>
+                <p className="text-muted-foreground text-sm mb-4">{card.desc}</p>
+                <span className="text-primary font-medium text-sm">Get Started →</span>
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Student</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Solve assessments, track progress, and improve your coding skills
-              </p>
-              <span className="text-primary font-medium text-sm">Get Started →</span>
-            </div>
-
-            <div className="card-elevated text-center hover:border-primary transition-colors cursor-pointer" onClick={() => navigate('/login')}>
-              <div className="w-16 h-16 bg-info-light rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-8 h-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Teacher</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Create assessments, monitor students, and manage your workspace
-              </p>
-              <span className="text-primary font-medium text-sm">Get Started →</span>
-            </div>
-
-            <div className="card-elevated text-center hover:border-primary transition-colors cursor-pointer" onClick={() => navigate('/login')}>
-              <div className="w-16 h-16 bg-warning-light rounded-full flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-8 h-8 text-warning" />
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-2">Professional</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Sharpen your skills with challenging problems and track your growth
-              </p>
-              <span className="text-primary font-medium text-sm">Get Started →</span>
-            </div>
+            ))}
           </div>
         </div>
       </section>

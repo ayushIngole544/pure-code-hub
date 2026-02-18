@@ -14,16 +14,248 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      assessments: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          difficulty: string
+          id: string
+          is_published: boolean
+          language: string
+          time_limit: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          difficulty?: string
+          id?: string
+          is_published?: boolean
+          language?: string
+          time_limit?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          difficulty?: string
+          id?: string
+          is_published?: boolean
+          language?: string
+          time_limit?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      questions: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          description: string | null
+          id: string
+          language: string
+          sort_order: number
+          starter_code: string | null
+          test_cases: Json
+          title: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          sort_order?: number
+          starter_code?: string | null
+          test_cases?: Json
+          title: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          sort_order?: number
+          starter_code?: string | null
+          test_cases?: Json
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "questions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submissions: {
+        Row: {
+          assessment_id: string
+          code: string
+          created_at: string
+          execution_time_ms: number | null
+          id: string
+          is_correct: boolean
+          language: string
+          memory_used_kb: number | null
+          output: string | null
+          passed_test_cases: number | null
+          question_id: string
+          score: number | null
+          status: string
+          student_id: string
+          total_test_cases: number | null
+        }
+        Insert: {
+          assessment_id: string
+          code?: string
+          created_at?: string
+          execution_time_ms?: number | null
+          id?: string
+          is_correct?: boolean
+          language?: string
+          memory_used_kb?: number | null
+          output?: string | null
+          passed_test_cases?: number | null
+          question_id: string
+          score?: number | null
+          status?: string
+          student_id: string
+          total_test_cases?: number | null
+        }
+        Update: {
+          assessment_id?: string
+          code?: string
+          created_at?: string
+          execution_time_ms?: number | null
+          id?: string
+          is_correct?: boolean
+          language?: string
+          memory_used_kb?: number | null
+          output?: string | null
+          passed_test_cases?: number | null
+          question_id?: string
+          score?: number | null
+          status?: string
+          student_id?: string
+          total_test_cases?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_notes: {
+        Row: {
+          content: string | null
+          created_at: string
+          id: string
+          teacher_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          teacher_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          id?: string
+          teacher_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "student" | "teacher" | "professional" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +382,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["student", "teacher", "professional", "admin"],
+    },
   },
 } as const

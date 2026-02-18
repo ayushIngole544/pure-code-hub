@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
-export type UserRole = 'student' | 'teacher' | 'professional';
+export type UserRole = 'student' | 'teacher' | 'professional' | 'admin';
 
 export interface User {
   id: string;
@@ -11,70 +13,98 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  signup: (email: string, password: string, name: string, role: UserRole) => Promise<boolean>;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  signup: (email: string, password: string, name: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  loading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function fetchUserProfile(supabaseUser: SupabaseUser): Promise<User | null> {
+  // Fetch profile
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('name, email')
+    .eq('user_id', supabaseUser.id)
+    .single();
+
+  // Fetch role
+  const { data: roleData } = await supabase
+    .from('user_roles')
+    .select('role')
+    .eq('user_id', supabaseUser.id)
+    .single();
+
+  if (!profile || !roleData) return null;
+
+  return {
+    id: supabaseUser.id,
+    email: profile.email,
+    name: profile.name,
+    role: roleData.role as UserRole,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('codehub_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Use setTimeout to avoid deadlock with Supabase auth
+        setTimeout(async () => {
+          const profile = await fetchUserProfile(session.user);
+          setUser(profile);
+          setLoading(false);
+        }, 0);
+      } else {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        const profile = await fetchUserProfile(session.user);
+        setUser(profile);
+      }
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    const users = JSON.parse(localStorage.getItem('codehub_users') || '[]');
-    const foundUser = users.find((u: User & { password: string }) => 
-      u.email === email && u.password === password
-    );
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('codehub_user', JSON.stringify(userWithoutPassword));
-      return true;
-    }
-    return false;
+  const login = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
   };
 
-  const signup = async (email: string, password: string, name: string, role: UserRole): Promise<boolean> => {
-    const users = JSON.parse(localStorage.getItem('codehub_users') || '[]');
-    
-    if (users.find((u: User) => u.email === email)) {
-      return false;
-    }
-
-    const newUser = {
-      id: crypto.randomUUID(),
+  const signup = async (email: string, password: string, name: string, role: UserRole) => {
+    const { error } = await supabase.auth.signUp({
       email,
       password,
-      name,
-      role,
-    };
-
-    users.push(newUser);
-    localStorage.setItem('codehub_users', JSON.stringify(users));
-
-    const { password: _, ...userWithoutPassword } = newUser;
-    setUser(userWithoutPassword);
-    localStorage.setItem('codehub_user', JSON.stringify(userWithoutPassword));
-    return true;
+      options: {
+        data: { name, role },
+        emailRedirectTo: window.location.origin,
+      },
+    });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('codehub_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, isAuthenticated: !!user, loading }}>
       {children}
     </AuthContext.Provider>
   );
