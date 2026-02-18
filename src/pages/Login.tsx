@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Code2, Eye, EyeOff, AlertCircle } from 'lucide-react';
 
@@ -13,8 +13,20 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, signup } = useAuth();
+  const { login, signup, user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const dashboardPaths: Record<UserRole, string> = {
+        teacher: '/teacher/dashboard',
+        student: '/student/dashboard',
+        professional: '/professional/dashboard',
+        admin: '/teacher/dashboard',
+      };
+      navigate(dashboardPaths[user.role] || '/');
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,36 +34,20 @@ export default function Login() {
     setLoading(true);
 
     try {
-      let success: boolean;
-
       if (isSignup) {
         if (!name.trim()) {
           setError('Please enter your name');
           setLoading(false);
           return;
         }
-        success = await signup(email, password, name, role);
-        if (!success) {
-          setError('Email already exists');
+        const result = await signup(email, password, name, role);
+        if (!result.success) {
+          setError(result.error || 'Signup failed');
         }
       } else {
-        success = await login(email, password);
-        if (!success) {
-          setError('Invalid email or password');
-        }
-      }
-
-      if (success) {
-        const dashboardPaths: Record<UserRole, string> = {
-          teacher: '/teacher/dashboard',
-          student: '/student/dashboard',
-          professional: '/professional/dashboard',
-        };
-        // Get the user from localStorage to determine role
-        const storedUser = localStorage.getItem('codehub_user');
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
-          navigate(dashboardPaths[user.role as UserRole]);
+        const result = await login(email, password);
+        if (!result.success) {
+          setError(result.error || 'Invalid email or password');
         }
       }
     } catch (err) {
@@ -119,8 +115,8 @@ export default function Login() {
               {isSignup ? 'Create your account' : 'Welcome back'}
             </h2>
             <p className="text-muted-foreground mt-2">
-              {isSignup 
-                ? 'Start your coding journey today' 
+              {isSignup
+                ? 'Start your coding journey today'
                 : 'Sign in to continue to CodeHub'}
             </p>
           </div>

@@ -32,14 +32,10 @@ export function AssessmentCard({ assessment, onClick, showStats, attempts, corre
           <Code className="w-4 h-4" />
           <span>{assessment.language}</span>
         </div>
-        <div className="flex items-center gap-1">
-          <FileText className="w-4 h-4" />
-          <span>{assessment.questions.length} questions</span>
-        </div>
-        {assessment.timeLimit && (
+        {assessment.time_limit && (
           <div className="flex items-center gap-1">
             <Clock className="w-4 h-4" />
-            <span>{assessment.timeLimit} min</span>
+            <span>{assessment.time_limit} min</span>
           </div>
         )}
       </div>

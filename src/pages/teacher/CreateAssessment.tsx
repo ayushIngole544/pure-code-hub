@@ -1,8 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useData, Question } from '@/contexts/DataContext';
+import { useData } from '@/contexts/DataContext';
 import { Plus, Trash2, Sparkles, Loader2, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+
+interface QuestionInput {
+  title: string;
+  description: string;
+  starter_code: string;
+  language: string;
+  test_cases: { input: string; expectedOutput: string }[];
+}
 
 export default function CreateAssessment() {
   const { user } = useAuth();
@@ -14,7 +23,9 @@ export default function CreateAssessment() {
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
   const [language, setLanguage] = useState('JavaScript');
   const [timeLimit, setTimeLimit] = useState<number | undefined>();
-  const [questions, setQuestions] = useState<Omit<Question, 'id'>[]>([]);
+  const [isPublished, setIsPublished] = useState(false);
+  const [questions, setQuestions] = useState<QuestionInput[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   // AI generation states
   const [showAIPanel, setShowAIPanel] = useState(false);
@@ -33,10 +44,9 @@ export default function CreateAssessment() {
       {
         title: '',
         description: '',
-        difficulty: 'easy',
+        starter_code: getStarterCode(language),
         language,
-        starterCode: getStarterCode(language),
-        testCases: [{ input: '', expectedOutput: '' }],
+        test_cases: [{ input: '', expectedOutput: '' }],
       },
     ]);
   };
@@ -51,7 +61,7 @@ export default function CreateAssessment() {
     return templates[lang] || templates.JavaScript;
   };
 
-  const updateQuestion = (index: number, updates: Partial<Omit<Question, 'id'>>) => {
+  const updateQuestion = (index: number, updates: Partial<QuestionInput>) => {
     const updated = [...questions];
     updated[index] = { ...updated[index], ...updates };
     setQuestions(updated);
@@ -63,47 +73,61 @@ export default function CreateAssessment() {
 
   const generateWithAI = async () => {
     setAiGenerating(true);
-    
-    // Simulated AI generation
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const generatedQuestion: Omit<Question, 'id'> = {
-      title: `${aiDifficulty === 'easy' ? 'Sum of Array' : aiDifficulty === 'medium' ? 'Two Sum Problem' : 'Merge Intervals'}`,
-      description: aiDifficulty === 'easy' 
-        ? 'Given an array of integers, return the sum of all elements.'
-        : aiDifficulty === 'medium'
-        ? 'Given an array of integers and a target, return indices of two numbers that add up to the target.'
-        : 'Given a collection of intervals, merge all overlapping intervals.',
-      difficulty: aiDifficulty,
-      language: aiLanguage,
-      starterCode: getStarterCode(aiLanguage),
-      testCases: [
-        { input: aiDifficulty === 'easy' ? '[1, 2, 3]' : '[2, 7, 11, 15], 9', expectedOutput: aiDifficulty === 'easy' ? '6' : '[0, 1]' },
-        { input: aiDifficulty === 'easy' ? '[10, 20, 30]' : '[3, 2, 4], 6', expectedOutput: aiDifficulty === 'easy' ? '60' : '[1, 2]' },
-      ],
-    };
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-question', {
+        body: { difficulty: aiDifficulty, language: aiLanguage, reference: aiReference },
+      });
 
-    setQuestions([...questions, generatedQuestion]);
+      if (error) throw error;
+
+      if (data?.question) {
+        setQuestions([...questions, data.question]);
+      }
+    } catch (err) {
+      // Fallback to simulated generation
+      const generatedQuestion: QuestionInput = {
+        title: aiDifficulty === 'easy' ? 'Sum of Array' : aiDifficulty === 'medium' ? 'Two Sum Problem' : 'Merge Intervals',
+        description: aiDifficulty === 'easy'
+          ? 'Given an array of integers, return the sum of all elements.'
+          : aiDifficulty === 'medium'
+          ? 'Given an array of integers and a target, return indices of two numbers that add up to the target.'
+          : 'Given a collection of intervals, merge all overlapping intervals.',
+        starter_code: getStarterCode(aiLanguage),
+        language: aiLanguage,
+        test_cases: [
+          { input: aiDifficulty === 'easy' ? '[1, 2, 3]' : '[2, 7, 11, 15], 9', expectedOutput: aiDifficulty === 'easy' ? '6' : '[0, 1]' },
+          { input: aiDifficulty === 'easy' ? '[10, 20, 30]' : '[3, 2, 4], 6', expectedOutput: aiDifficulty === 'easy' ? '60' : '[1, 2]' },
+        ],
+      };
+      setQuestions([...questions, generatedQuestion]);
+    }
+
     setAiGenerating(false);
     setAiSuccess(true);
     setTimeout(() => setAiSuccess(false), 2000);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!user || questions.length === 0) return;
 
-    addAssessment({
+    setSubmitting(true);
+
+    await addAssessment({
       title,
       description,
       difficulty,
       language,
-      timeLimit,
-      questions: questions.map((q, i) => ({ ...q, id: `q-${i}` })),
-      createdBy: user.id,
+      time_limit: timeLimit,
+      is_published: isPublished,
+      questions: questions.map((q, i) => ({
+        ...q,
+        sort_order: i,
+      })),
     });
 
+    setSubmitting(false);
     navigate('/teacher/assessments');
   };
 
@@ -179,6 +203,19 @@ export default function CreateAssessment() {
                   max={180}
                 />
               </div>
+
+              <div className="flex items-center gap-3 pt-6">
+                <input
+                  type="checkbox"
+                  id="isPublished"
+                  checked={isPublished}
+                  onChange={(e) => setIsPublished(e.target.checked)}
+                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                />
+                <label htmlFor="isPublished" className="text-sm font-medium text-foreground">
+                  Publish immediately
+                </label>
+              </div>
             </div>
           </div>
 
@@ -206,7 +243,6 @@ export default function CreateAssessment() {
               </div>
             </div>
 
-            {/* AI Panel */}
             {showAIPanel && (
               <div className="bg-secondary/50 rounded-lg p-4 mb-6 border border-border">
                 <h3 className="font-medium text-foreground mb-3 flex items-center gap-2">
@@ -216,11 +252,7 @@ export default function CreateAssessment() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className="label-text">Difficulty</label>
-                    <select
-                      value={aiDifficulty}
-                      onChange={(e) => setAiDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
-                      className="select-field"
-                    >
+                    <select value={aiDifficulty} onChange={(e) => setAiDifficulty(e.target.value as any)} className="select-field">
                       <option value="easy">Easy</option>
                       <option value="medium">Medium</option>
                       <option value="hard">Hard</option>
@@ -228,56 +260,23 @@ export default function CreateAssessment() {
                   </div>
                   <div>
                     <label className="label-text">Language</label>
-                    <select
-                      value={aiLanguage}
-                      onChange={(e) => setAiLanguage(e.target.value)}
-                      className="select-field"
-                    >
-                      {languages.map((lang) => (
-                        <option key={lang} value={lang}>{lang}</option>
-                      ))}
+                    <select value={aiLanguage} onChange={(e) => setAiLanguage(e.target.value)} className="select-field">
+                      {languages.map((lang) => (<option key={lang} value={lang}>{lang}</option>))}
                     </select>
                   </div>
                   <div>
                     <label className="label-text">Reference Style</label>
-                    <select
-                      value={aiReference}
-                      onChange={(e) => setAiReference(e.target.value)}
-                      className="select-field"
-                    >
-                      {references.map((ref) => (
-                        <option key={ref} value={ref}>{ref}</option>
-                      ))}
+                    <select value={aiReference} onChange={(e) => setAiReference(e.target.value)} className="select-field">
+                      {references.map((ref) => (<option key={ref} value={ref}>{ref}</option>))}
                     </select>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={generateWithAI}
-                  disabled={aiGenerating}
-                  className="btn-primary flex items-center gap-2"
-                >
-                  {aiGenerating ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : aiSuccess ? (
-                    <>
-                      <CheckCircle className="w-4 h-4" />
-                      Generated!
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      Generate Question
-                    </>
-                  )}
+                <button type="button" onClick={generateWithAI} disabled={aiGenerating} className="btn-primary flex items-center gap-2">
+                  {aiGenerating ? (<><Loader2 className="w-4 h-4 animate-spin" />Generating...</>) : aiSuccess ? (<><CheckCircle className="w-4 h-4" />Generated!</>) : (<><Sparkles className="w-4 h-4" />Generate Question</>)}
                 </button>
               </div>
             )}
 
-            {/* Questions list */}
             {questions.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <p>No questions added yet. Use the buttons above to add questions.</p>
@@ -288,11 +287,7 @@ export default function CreateAssessment() {
                   <div key={index} className="border border-border rounded-lg p-4">
                     <div className="flex items-start justify-between mb-4">
                       <h4 className="font-medium text-foreground">Question {index + 1}</h4>
-                      <button
-                        type="button"
-                        onClick={() => removeQuestion(index)}
-                        className="text-muted-foreground hover:text-error transition-colors"
-                      >
+                      <button type="button" onClick={() => removeQuestion(index)} className="text-muted-foreground hover:text-error transition-colors">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -300,34 +295,15 @@ export default function CreateAssessment() {
                     <div className="grid gap-4">
                       <div>
                         <label className="label-text">Question Title</label>
-                        <input
-                          type="text"
-                          value={question.title}
-                          onChange={(e) => updateQuestion(index, { title: e.target.value })}
-                          className="input-field"
-                          placeholder="e.g., Reverse a String"
-                          required
-                        />
+                        <input type="text" value={question.title} onChange={(e) => updateQuestion(index, { title: e.target.value })} className="input-field" placeholder="e.g., Reverse a String" required />
                       </div>
-
                       <div>
                         <label className="label-text">Description</label>
-                        <textarea
-                          value={question.description}
-                          onChange={(e) => updateQuestion(index, { description: e.target.value })}
-                          className="input-field min-h-[80px] resize-none"
-                          placeholder="Describe the problem..."
-                          required
-                        />
+                        <textarea value={question.description} onChange={(e) => updateQuestion(index, { description: e.target.value })} className="input-field min-h-[80px] resize-none" placeholder="Describe the problem..." required />
                       </div>
-
                       <div>
                         <label className="label-text">Starter Code</label>
-                        <textarea
-                          value={question.starterCode}
-                          onChange={(e) => updateQuestion(index, { starterCode: e.target.value })}
-                          className="input-field font-mono text-sm min-h-[120px] resize-none"
-                        />
+                        <textarea value={question.starter_code} onChange={(e) => updateQuestion(index, { starter_code: e.target.value })} className="input-field font-mono text-sm min-h-[120px] resize-none" />
                       </div>
                     </div>
                   </div>
@@ -338,19 +314,9 @@ export default function CreateAssessment() {
 
           {/* Submit */}
           <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              onClick={() => navigate('/teacher/assessments')}
-              className="btn-outline"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!title || !description || questions.length === 0}
-              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Create Assessment
+            <button type="button" onClick={() => navigate('/teacher/assessments')} className="btn-outline">Cancel</button>
+            <button type="submit" disabled={!title || !description || questions.length === 0 || submitting} className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed">
+              {submitting ? 'Creating...' : 'Create Assessment'}
             </button>
           </div>
         </form>
