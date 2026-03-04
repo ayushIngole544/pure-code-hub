@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData, Question } from '@/contexts/DataContext';
 import { CodeEditor } from '@/components/CodeEditor';
+import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, Clock, CheckCircle, XCircle, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 
 export default function SolveAssessment() {
@@ -15,7 +16,7 @@ export default function SolveAssessment() {
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
-  const [results, setResults] = useState<Record<string, boolean>>({});
+  const [results, setResults] = useState<Record<string, { passed: boolean; details?: any }>>({});
   const [showResults, setShowResults] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -66,9 +67,41 @@ export default function SolveAssessment() {
     if (!user || !currentQuestion || submitting) return;
     setSubmitting(true);
 
-    // Simulated evaluation
-    const isCorrect = Math.random() > 0.3;
     const testCases = currentQuestion.test_cases || [];
+    let isCorrect = false;
+    let passedCount = 0;
+    let score = 0;
+    let outputText = '';
+    let executionTime = 0;
+
+    try {
+      // Call evaluate-code edge function for real test case evaluation
+      const { data, error } = await supabase.functions.invoke('evaluate-code', {
+        body: {
+          code,
+          language: (currentQuestion.language || assessment.language).toLowerCase(),
+          test_cases: testCases,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        isCorrect = data.is_correct || false;
+        passedCount = data.passed || 0;
+        score = data.score || 0;
+        executionTime = data.execution_time_ms || 0;
+
+        const resultDetails = (data.results || []) as any[];
+        outputText = resultDetails
+          .map((r: any, i: number) => `Test ${i + 1}: ${r.passed ? '✅ Passed' : `❌ Failed (expected: ${r.expected}, got: ${r.actual})`}`)
+          .join('\n');
+        if (!outputText) outputText = isCorrect ? 'All test cases passed!' : 'Some test cases failed.';
+      }
+    } catch (err: any) {
+      // Fallback if edge function fails
+      outputText = `Evaluation error: ${err.message || 'Could not evaluate code'}`;
+    }
 
     await addSubmission({
       assessment_id: assessment.id,
@@ -76,14 +109,14 @@ export default function SolveAssessment() {
       code,
       language: currentQuestion.language || assessment.language,
       is_correct: isCorrect,
-      score: isCorrect ? 100 : 0,
-      passed_test_cases: isCorrect ? testCases.length : Math.floor(testCases.length * 0.3),
+      score,
+      passed_test_cases: passedCount,
       total_test_cases: testCases.length,
-      output: isCorrect ? 'All test cases passed!' : 'Some test cases failed.',
+      output: outputText,
       status: 'completed',
     });
 
-    setResults(prev => ({ ...prev, [currentQuestion.id]: isCorrect }));
+    setResults(prev => ({ ...prev, [currentQuestion.id]: { passed: isCorrect, details: { score, passedCount, total: testCases.length, executionTime } } }));
     setSubmitting(false);
 
     if (currentQuestionIndex < totalQuestions - 1) {
@@ -94,7 +127,7 @@ export default function SolveAssessment() {
   };
 
   if (showResults) {
-    const correctCount = Object.values(results).filter(Boolean).length;
+    const correctCount = Object.values(results).filter(r => r.passed).length;
     const totalAnswered = Object.keys(results).length;
 
     return (
@@ -137,7 +170,7 @@ export default function SolveAssessment() {
             )}
             <div className="flex gap-1">
               {assessment.questions.map((_: any, i: number) => (
-                <div key={i} className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium ${i === currentQuestionIndex ? 'bg-primary text-primary-foreground' : results[assessment.questions[i].id] !== undefined ? results[assessment.questions[i].id] ? 'bg-success-light text-easy' : 'bg-error-light text-error' : 'bg-secondary text-muted-foreground'}`}>{i + 1}</div>
+                <div key={i} className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium cursor-pointer ${i === currentQuestionIndex ? 'bg-primary text-primary-foreground' : results[assessment.questions[i].id] !== undefined ? results[assessment.questions[i].id].passed ? 'bg-success-light text-easy' : 'bg-error-light text-error' : 'bg-secondary text-muted-foreground'}`} onClick={() => setCurrentQuestionIndex(i)}>{i + 1}</div>
               ))}
             </div>
           </div>
@@ -164,13 +197,29 @@ export default function SolveAssessment() {
                 </div>
               </div>
             )}
+            {results[currentQuestion.id] && (
+              <div className="mt-6 pt-6 border-t border-border">
+                <h3 className="text-sm font-semibold text-foreground mb-2">Result</h3>
+                <div className={`p-3 rounded-lg text-sm ${results[currentQuestion.id].passed ? 'bg-success-light text-easy' : 'bg-error-light text-error'}`}>
+                  {results[currentQuestion.id].passed ? '✅ All test cases passed!' : `❌ ${results[currentQuestion.id].details?.passedCount || 0}/${results[currentQuestion.id].details?.total || 0} test cases passed`}
+                  {results[currentQuestion.id].details?.executionTime > 0 && (
+                    <span className="ml-2 text-muted-foreground">({results[currentQuestion.id].details.executionTime}ms)</span>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="mt-6 pt-6 border-t border-border flex justify-between">
               <button onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))} disabled={currentQuestionIndex === 0} className="btn-outline flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"><ChevronLeft className="w-4 h-4" />Previous</button>
               <button onClick={() => setCurrentQuestionIndex(prev => Math.min(totalQuestions - 1, prev + 1))} disabled={currentQuestionIndex === totalQuestions - 1} className="btn-outline flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">Next<ChevronRight className="w-4 h-4" /></button>
             </div>
           </div>
           <div className="card-elevated p-0 overflow-hidden">
-            <CodeEditor initialCode={currentQuestion.starter_code || ''} language={currentQuestion.language || assessment.language} onSubmit={handleSubmit} />
+            <CodeEditor
+              initialCode={currentQuestion.starter_code || ''}
+              language={currentQuestion.language || assessment.language}
+              onSubmit={handleSubmit}
+              submitting={submitting}
+            />
           </div>
         </div>
       </div>
