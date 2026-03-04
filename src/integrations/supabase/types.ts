@@ -53,6 +53,35 @@ export type Database = {
         }
         Relationships: []
       }
+      bookmarks: {
+        Row: {
+          assessment_id: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assessment_id: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assessment_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
