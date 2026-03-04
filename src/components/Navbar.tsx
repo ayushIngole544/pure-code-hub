@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Code2, LogOut, User } from 'lucide-react';
+import { Code2, LogOut, User, Trophy } from 'lucide-react';
 
 export function Navbar() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -15,6 +15,10 @@ export function Navbar() {
   const getNavLinks = () => {
     if (!user) return [];
 
+    const common = [
+      { path: '/leaderboard', label: 'Leaderboard' },
+    ];
+
     switch (user.role) {
       case 'teacher':
         return [
@@ -23,21 +27,24 @@ export function Navbar() {
           { path: '/teacher/create', label: 'Create' },
           { path: '/teacher/workspace', label: 'Workspace' },
           { path: '/teacher/students', label: 'Students' },
+          ...common,
         ];
       case 'student':
         return [
           { path: '/student/dashboard', label: 'Dashboard' },
           { path: '/student/assessments', label: 'Assessments' },
           { path: '/student/progress', label: 'Progress' },
+          ...common,
         ];
       case 'professional':
         return [
           { path: '/professional/dashboard', label: 'Dashboard' },
           { path: '/professional/practice', label: 'Practice' },
           { path: '/professional/challenges', label: 'Challenges' },
+          ...common,
         ];
       default:
-        return [];
+        return common;
     }
   };
 
@@ -71,13 +78,18 @@ export function Navbar() {
           <div className="flex items-center gap-4">
             {isAuthenticated ? (
               <>
-                <div className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground">
-                  <User className="w-4 h-4" />
+                <Link
+                  to="/profile"
+                  className="hidden sm:flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <div className="w-7 h-7 bg-primary/10 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-bold text-primary">{user?.name?.charAt(0)?.toUpperCase()}</span>
+                  </div>
                   <span>{user?.name}</span>
                   <span className="px-2 py-0.5 bg-secondary rounded-full text-xs capitalize">
                     {user?.role}
                   </span>
-                </div>
+                </Link>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"

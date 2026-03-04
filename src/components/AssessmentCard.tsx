@@ -1,5 +1,7 @@
-import { Clock, Code, FileText } from 'lucide-react';
+import { Clock, Code, Bookmark } from 'lucide-react';
 import { Assessment } from '@/contexts/DataContext';
+import { useBookmarks } from '@/hooks/useBookmarks';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AssessmentCardProps {
   assessment: Assessment;
@@ -10,17 +12,38 @@ interface AssessmentCardProps {
 }
 
 export function AssessmentCard({ assessment, onClick, showStats, attempts, correctRate }: AssessmentCardProps) {
+  const { user } = useAuth();
+  const { isBookmarked, toggleBookmark } = useBookmarks();
+
+  const bookmarked = isBookmarked(assessment.id);
+
   const difficultyClass = {
     easy: 'difficulty-easy',
     medium: 'difficulty-medium',
     hard: 'difficulty-hard',
   }[assessment.difficulty];
 
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (user) toggleBookmark(assessment.id);
+  };
+
   return (
     <div className="assessment-card" onClick={onClick}>
       <div className="flex items-start justify-between mb-3">
-        <h3 className="text-lg font-semibold text-foreground">{assessment.title}</h3>
-        <span className={difficultyClass}>{assessment.difficulty}</span>
+        <h3 className="text-lg font-semibold text-foreground flex-1 mr-2">{assessment.title}</h3>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={difficultyClass}>{assessment.difficulty}</span>
+          {user && (
+            <button
+              onClick={handleBookmark}
+              className={`p-1 rounded transition-colors ${bookmarked ? 'text-warning' : 'text-muted-foreground hover:text-warning'}`}
+              title={bookmarked ? 'Remove bookmark' : 'Bookmark'}
+            >
+              <Bookmark className={`w-4 h-4 ${bookmarked ? 'fill-current' : ''}`} />
+            </button>
+          )}
+        </div>
       </div>
       
       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
