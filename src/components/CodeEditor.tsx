@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Play, RotateCcw, Send, Loader2, Save } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -30,7 +30,7 @@ export function CodeEditor({ initialCode = '', language, onSubmit, onRun, readOn
       setTimeout(() => setAutoSaved(false), 1500);
     }, 3000);
     return () => { if (autoSaveRef.current) clearTimeout(autoSaveRef.current); };
-  }, [code, language, initialCode, readOnly]);
+  }, [code, language, initialCode, readOnly, autoSaveRef]);
 
   // Restore draft on mount
   useEffect(() => {
@@ -39,6 +39,7 @@ export function CodeEditor({ initialCode = '', language, onSubmit, onRun, readOn
     if (saved && saved !== initialCode) {
       setCode(saved);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRun = async () => {
@@ -57,6 +58,7 @@ export function CodeEditor({ initialCode = '', language, onSubmit, onRun, readOn
       } else {
         setOutput(`${data?.output || 'No output'}\n\nExecution time: ${data?.executionTime || 0}ms`);
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setOutput(`Error: ${err.message || 'Failed to execute code'}`);
     }

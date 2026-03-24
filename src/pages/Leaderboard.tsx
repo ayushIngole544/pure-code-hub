@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Trophy, Medal, Award, TrendingUp, Users } from 'lucide-react';
+import { Trophy, Medal, Award, Users } from 'lucide-react';
 import { Navbar } from '@/components/Navbar';
 
 interface LeaderboardEntry {
@@ -26,6 +26,7 @@ export default function Leaderboard() {
 
       // Aggregate by student
       const statsMap: Record<string, { total: number; correct: number }> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       submissions.forEach((s: any) => {
         if (!statsMap[s.student_id]) statsMap[s.student_id] = { total: 0, correct: 0 };
         statsMap[s.student_id].total++;
@@ -42,6 +43,7 @@ export default function Leaderboard() {
         .in('user_id', userIds);
 
       const profileMap: Record<string, string> = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (profiles || []).forEach((p: any) => { profileMap[p.user_id] = p.name; });
 
       const leaderboard = userIds.map(uid => ({

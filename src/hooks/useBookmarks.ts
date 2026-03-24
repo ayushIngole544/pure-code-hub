@@ -15,6 +15,7 @@ export function useBookmarks() {
       .eq('user_id', user.id);
 
     if (data) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setBookmarkedIds(new Set((data as any[]).map(b => b.assessment_id)));
     }
     setLoading(false);

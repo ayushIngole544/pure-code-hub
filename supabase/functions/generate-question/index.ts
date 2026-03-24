@@ -66,6 +66,7 @@ serve(async (req) => {
     }
 
     // Fallback: return a pre-built question
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const questions: Record<string, any> = {
       easy: {
         title: 'Sum of Array Elements',
@@ -110,7 +111,8 @@ serve(async (req) => {
     return new Response(JSON.stringify({ question }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
-  } catch (error) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } catch (error: any) {
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

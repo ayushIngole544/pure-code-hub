@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Navbar } from '@/components/Navbar';
-import { User, Mail, Shield, Calendar, Save, CheckCircle, TrendingUp, Code, Target } from 'lucide-react';
+import { User, Mail, Shield, Save, CheckCircle, TrendingUp, Code, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Profile() {

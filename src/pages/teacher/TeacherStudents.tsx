@@ -26,11 +26,12 @@ export default function TeacherStudents() {
       .then(({ data }) => {
         if (data) {
           const map: Record<string, string> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (data as any[]).forEach(p => { map[p.user_id] = p.name; });
           setProfileMap(map);
         }
       });
-  }, [studentSubmissions.length]);
+  }, [studentSubmissions]);
 
   const studentStats = studentSubmissions.reduce((acc, sub) => {
     if (!acc[sub.student_id]) {

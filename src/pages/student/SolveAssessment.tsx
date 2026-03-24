@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useData, Question } from '@/contexts/DataContext';
@@ -12,10 +12,13 @@ export default function SolveAssessment() {
   const { user } = useAuth();
   const { addSubmission, getAssessmentWithQuestions } = useData();
 
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [assessment, setAssessment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [results, setResults] = useState<Record<string, { passed: boolean; details?: any }>>({});
   const [showResults, setShowResults] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -28,7 +31,7 @@ export default function SolveAssessment() {
         setLoading(false);
       });
     }
-  }, [id]);
+  }, [id, getAssessmentWithQuestions]);
 
   useEffect(() => {
     if (timeRemaining === null || timeRemaining <= 0) return;
@@ -92,12 +95,15 @@ export default function SolveAssessment() {
         score = data.score || 0;
         executionTime = data.execution_time_ms || 0;
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const resultDetails = (data.results || []) as any[];
         outputText = resultDetails
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map((r: any, i: number) => `Test ${i + 1}: ${r.passed ? '✅ Passed' : `❌ Failed (expected: ${r.expected}, got: ${r.actual})`}`)
           .join('\n');
         if (!outputText) outputText = isCorrect ? 'All test cases passed!' : 'Some test cases failed.';
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       // Fallback if edge function fails
       outputText = `Evaluation error: ${err.message || 'Could not evaluate code'}`;
@@ -169,6 +175,7 @@ export default function SolveAssessment() {
               </div>
             )}
             <div className="flex gap-1">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {assessment.questions.map((_: any, i: number) => (
                 <div key={i} className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium cursor-pointer ${i === currentQuestionIndex ? 'bg-primary text-primary-foreground' : results[assessment.questions[i].id] !== undefined ? results[assessment.questions[i].id].passed ? 'bg-success-light text-easy' : 'bg-error-light text-error' : 'bg-secondary text-muted-foreground'}`} onClick={() => setCurrentQuestionIndex(i)}>{i + 1}</div>
               ))}
@@ -188,6 +195,7 @@ export default function SolveAssessment() {
               <div className="mt-6 pt-6 border-t border-border">
                 <h3 className="text-sm font-semibold text-foreground mb-3">Example Test Cases</h3>
                 <div className="space-y-3">
+                  {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   {currentQuestion.test_cases.slice(0, 2).map((tc: any, i: number) => (
                     <div key={i} className="bg-code rounded-lg p-3 text-sm font-mono">
                       <div className="text-muted-foreground">Input: <span className="text-foreground">{tc.input}</span></div>

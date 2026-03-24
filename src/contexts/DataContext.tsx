@@ -165,6 +165,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // Insert questions
     if (input.questions.length > 0) {
       const questionsToInsert = input.questions.map((q, i) => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         assessment_id: (assessmentData as any).id,
         title: q.title,
         description: q.description || '',

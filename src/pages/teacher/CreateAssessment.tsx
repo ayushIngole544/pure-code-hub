@@ -84,7 +84,7 @@ export default function CreateAssessment() {
       if (data?.question) {
         setQuestions([...questions, data.question]);
       }
-    } catch (err) {
+    } catch {
       // Fallback to simulated generation
       const generatedQuestion: QuestionInput = {
         title: aiDifficulty === 'easy' ? 'Sum of Array' : aiDifficulty === 'medium' ? 'Two Sum Problem' : 'Merge Intervals',
@@ -252,6 +252,7 @@ export default function CreateAssessment() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   <div>
                     <label className="label-text">Difficulty</label>
+                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                     <select value={aiDifficulty} onChange={(e) => setAiDifficulty(e.target.value as any)} className="select-field">
                       <option value="easy">Easy</option>
                       <option value="medium">Medium</option>
