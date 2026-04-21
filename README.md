@@ -1,73 +1,264 @@
-# Welcome to your Lovable project
+# 🚀 CodeHub Backend - Online Judge System
 
-## Project info
+A **production-level backend system** for a coding platform similar to LeetCode, built with Node.js, Express, Prisma, Docker, and BullMQ.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+---
 
-## How can I edit this code?
+## 📌 Overview
 
-There are several ways of editing your application.
+CodeHub Backend is a scalable online judge system where users can:
 
-**Use Lovable**
+- Submit coding solutions
+- Execute code in a secure sandbox
+- Get real-time evaluation results
+- Practice problems like competitive programming platforms
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🧱 Architecture
 
-**Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Client → API → Queue → Worker → Docker → Evaluation → Database → Response
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-Follow these steps:
+---
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## ⚙️ Tech Stack
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- **Backend:** Node.js, Express, TypeScript  
+- **Database:** PostgreSQL + Prisma ORM  
+- **Queue System:** BullMQ + Redis  
+- **Code Execution:** Docker  
+- **Authentication:** JWT  
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
+## 🔐 Authentication System
 
-**Edit a file directly in GitHub**
+- User Registration & Login  
+- JWT-based authentication  
+- Role-based access control  
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Roles:
+- Student  
+- Teacher  
+- Professional  
 
-**Use GitHub Codespaces**
+---
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🧩 Features
 
-## What technologies are used for this project?
+### 1. Problem Management
+- Create coding problems
+- Set difficulty (EASY / MEDIUM / HARD)
+- Attach multiple test cases
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 2. Test Case System
+- Supports:
+  - Visible test cases
+  - Hidden test cases
+- Used for accurate evaluation
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+### 3. Submission System
+- Users submit code in multiple languages:
+  - Python
+  - JavaScript
+  - C++
+- Stored as `PENDING` initially
 
-## Can I connect a custom domain to my Lovable project?
+---
 
-Yes, you can!
+### 4. Queue-Based Execution (BullMQ)
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- Submissions are pushed to a queue
+- Worker processes them asynchronously
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+✅ Prevents server blocking  
+✅ Scalable for multiple users  
+
+---
+
+### 5. Worker System
+
+- Picks submission jobs from queue
+- Executes code
+- Updates result in database
+
+---
+
+### 6. Docker Sandbox Execution
+
+- Code runs inside isolated containers
+- Resource restrictions:
+  - CPU limit
+  - Memory limit
+  - No network access
+
+✅ Secure execution environment  
+
+---
+
+### 7. Evaluation Engine
+
+Each submission is evaluated against all test cases:
+
+#### Status Types:
+- `ACCEPTED`
+- `WRONG_ANSWER`
+- `RUNTIME_ERROR`
+- `TIME_LIMIT_EXCEEDED`
+
+---
+
+### 8. Time Limit Handling (TLE)
+
+- Detects infinite loops and slow code
+- Automatically kills Docker container after 2 seconds
+
+---
+
+## 🔁 Submission Flow
+
+User submits code
+API stores submission (PENDING)
+Job added to queue
+Worker picks job
+Code runs inside Docker
+Output compared with expected results
+Status updated in database
+User fetches result
+
+---
+
+## 🌐 API Endpoints
+
+### 🔐 Auth
+
+POST /api/auth/register
+POST /api/auth/login
+
+
+### 🧩 Problems
+
+POST /api/problems
+GET /api/problems
+
+
+### 🧪 Test Cases
+
+POST /api/testcases
+
+
+### 📤 Submissions
+
+POST /api/submissions
+GET /api/submissions/:id
+
+
+---
+
+## 🧠 Key Concepts Implemented
+
+- Queue-based architecture (BullMQ)
+- Worker pattern for background jobs
+- Docker-based code execution
+- Time limit enforcement (TLE)
+- Role-based authentication
+- Scalable backend design
+
+---
+
+## 🚀 Getting Started
+
+### 1. Clone Repository
+
+git clone https://github.com/ayushIngole544/CodeHub-new-part.git
+
+cd codehub-backend
+
+
+---
+
+### 2. Install Dependencies
+
+pnpm install
+
+
+---
+
+### 3. Setup Environment Variables
+
+Create `.env` file:
+
+
+PORT=4000
+DATABASE_URL=your_postgres_url
+JWT_SECRET=your_secret
+REDIS_URL=redis://localhost:6379
+
+
+---
+
+### 4. Start Services
+
+#### Start Backend
+
+pnpm dev
+
+
+#### Start Worker
+
+pnpm ts-node src/workers/submission.worker.ts
+
+
+---
+
+### 5. Run Docker (Required)
+
+Make sure Docker is running:
+
+docker --version
+
+
+---
+
+## 📊 Project Status
+
+
+Backend: ✅ Complete
+Frontend: 🔄 In Progress
+
+
+---
+
+## 🔥 Future Enhancements
+
+- Monaco Editor (Frontend)
+- Real-time code execution
+- Contest system
+- Leaderboard
+- AI-generated problems
+
+---
+
+## 💡 Inspiration
+
+Inspired by platforms like:
+
+- LeetCode  
+- Codeforces  
+- HackerRank  
+
+---
+
+## 👨‍💻 Author
+
+**Your Name**
+
+---
+
+## ⭐ If you like this project, give it a star!

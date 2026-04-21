@@ -1,0 +1,200 @@
+/* 🔥 MUST BE FIRST */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* 🔥 TAILWIND */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    --primary: 231 43% 26%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 348 83% 47%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 231 43% 26%;
+
+    --radius: 0.5rem;
+
+    --code-bg: 210 40% 96.1%;
+    --code-border: 214.3 31.8% 91.4%;
+
+    --success: 142 71% 45%;
+    --success-light: 142 71% 95%;
+    --warning: 38 92% 50%;
+    --warning-light: 38 92% 95%;
+    --error: 348 83% 47%;
+    --error-light: 348 83% 95%;
+    --info: 217 91% 60%;
+    --info-light: 217 91% 95%;
+
+    --easy: 142 71% 45%;
+    --medium: 38 92% 50%;
+    --hard: 348 83% 47%;
+
+    --sidebar-background: 231 43% 26%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 231 43% 36%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 231 43% 30%;
+    --sidebar-ring: 217 91% 60%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer components {
+  .stat-card {
+    @apply bg-card rounded-lg border border-border p-5 shadow-sm transition-shadow hover:shadow-md;
+  }
+
+  .code-editor {
+    @apply font-mono text-sm bg-code rounded-lg border border-code-border p-4 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20;
+  }
+
+  .difficulty-easy {
+    @apply text-easy bg-success-light px-2 py-0.5 rounded text-xs font-medium;
+  }
+
+  .difficulty-medium {
+    @apply text-warning bg-warning-light px-2 py-0.5 rounded text-xs font-medium;
+  }
+
+  .difficulty-hard {
+    @apply text-error bg-error-light px-2 py-0.5 rounded text-xs font-medium;
+  }
+
+  .nav-link {
+    @apply px-4 py-2 text-muted-foreground hover:text-foreground transition-colors font-medium;
+  }
+
+  .nav-link-active {
+    @apply text-primary border-b-2 border-primary;
+  }
+
+  .assessment-card {
+    @apply bg-card rounded-lg border border-border p-5 hover:border-primary/50 transition-all cursor-pointer hover:shadow-md;
+  }
+
+  .page-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
+  }
+
+  .section-title {
+    @apply text-2xl font-semibold text-foreground mb-6;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:bg-primary/90 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground px-4 py-2 rounded-lg font-medium hover:bg-secondary/80 transition-colors;
+  }
+
+  .btn-outline {
+    @apply border border-border text-foreground px-4 py-2 rounded-lg font-medium hover:bg-secondary transition-colors;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-2.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all;
+  }
+
+  .select-field {
+    @apply w-full px-4 py-2.5 rounded-lg border border-input bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer;
+  }
+
+  .label-text {
+    @apply block text-sm font-medium text-foreground mb-1.5;
+  }
+
+  .card-elevated {
+    @apply bg-card rounded-xl border border-border shadow-lg p-6;
+  }
+}
+
+@layer utilities {
+  .bg-code {
+    background-color: hsl(var(--code-bg));
+  }
+
+  .border-code-border {
+    border-color: hsl(var(--code-border));
+  }
+
+  .text-easy {
+    color: hsl(var(--easy));
+  }
+
+  .text-warning {
+    color: hsl(var(--warning));
+  }
+
+  .text-error {
+    color: hsl(var(--error));
+  }
+
+  .bg-success-light {
+    background-color: hsl(var(--success-light));
+  }
+
+  .bg-warning-light {
+    background-color: hsl(var(--warning-light));
+  }
+
+  .bg-error-light {
+    background-color: hsl(var(--error-light));
+  }
+
+  .bg-info-light {
+    background-color: hsl(var(--info-light));
+  }
+}
+/* VS Code-like scroll */
+.monaco-editor {
+  border-radius: 10px;
+}
+
+/* Output terminal feel */
+.terminal {
+  background: #0d1117;
+  color: #00ff9c;
+  font-family: 'JetBrains Mono', monospace;
+}

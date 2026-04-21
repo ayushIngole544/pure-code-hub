@@ -1,0 +1,231 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//
+// 🔐 Role Model
+//
+model Role {
+  id    String @id @default(uuid())
+  name  String @unique
+  users User[]
+}
+
+//
+// 👤 User Model
+//
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  roleId    String
+  role      Role     @relation(fields: [roleId], references: [id])
+  createdAt DateTime @default(now())
+
+  problems      Problem[]           @relation("CreatedProblems")
+  assignments   Assignment[]        @relation("TeacherAssignments")
+  submissions   Submission[]
+  assignedTo    AssignmentStudent[]
+  notifications Notification[]
+  notes         Note[]
+
+  // 🔥 ADD THIS LINE
+  bookmarks Bookmark[]
+}
+
+//
+// 🧩 Problem Model (for coding questions)
+//
+model Problem {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  difficulty  String
+  createdBy   String
+  createdAt   DateTime @default(now())
+
+  // 🔥 ADD THIS
+  marks       Int      @default(10)
+
+  creator     User                @relation("CreatedProblems", fields: [createdBy], references: [id])
+  submissions Submission[]
+  assignments AssignmentProblem[]
+  testCases   TestCase[]
+}
+
+//
+// 🧪 Test Case Model
+//
+model TestCase {
+  id             String  @id @default(uuid())
+  problemId      String
+  input          String
+  expectedOutput String
+  isHidden       Boolean @default(false)
+
+  problem Problem @relation(fields: [problemId], references: [id])
+}
+
+//
+// 📚 Assignment Model
+//
+model Assignment {
+  id          String   @id @default(uuid())
+  title       String
+  teacherId   String
+  dueDate     DateTime
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  teacher  User                @relation("TeacherAssignments", fields: [teacherId], references: [id])
+  problems AssignmentProblem[]
+  students AssignmentStudent[]
+  questions Question[]
+
+  notes Note[]   // ✅ FIX ADDED
+}
+
+//
+// 🔗 Assignment ↔ Problem
+//
+model AssignmentProblem {
+  id           String @id @default(uuid())
+  assignmentId String
+  problemId    String
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  problem    Problem    @relation(fields: [problemId], references: [id])
+
+  @@unique([assignmentId, problemId])
+}
+
+//
+// 🔥 QUESTION MODEL (NEW CORE FEATURE)
+//
+model Question {
+  id            String   @id @default(uuid())
+  assignmentId  String
+  type          QuestionType
+  title         String
+  description   String
+
+  // MCQ
+  options       Json?
+  correctAnswer String? // 🔒 teacher only
+
+  // CODING
+  problemId     String?
+
+  marks         Int
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+}
+
+//
+// 🧪 Submission Model
+//
+model Submission {
+  id           String   @id @default(uuid())
+  userId       String
+  problemId    String?
+  assignmentId String?
+  questionId   String?
+
+  code      String?
+  answer    String?
+
+  language  String?
+  status    SubmissionStatus @default(PENDING)
+  score     Int? // 🔥 NEW
+
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id])
+  problem Problem? @relation(fields: [problemId], references: [id])
+}
+
+//
+// 👨‍🎓 Assignment ↔ Student
+//
+model AssignmentStudent {
+  id           String   @id @default(uuid())
+  assignmentId String
+  studentId    String
+  status       AssignmentStatus @default(PENDING)
+  score        Int?
+  createdAt    DateTime @default(now())
+
+  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  student    User       @relation(fields: [studentId], references: [id])
+
+  @@unique([assignmentId, studentId])
+}
+
+// 🔥 NEW: BOOKMARKS MODEL
+model Bookmark {
+  id           String   @id @default(uuid())
+  userId       String
+  assessmentId String
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, assessmentId])
+}
+
+//
+// 📝 NOTES SYSTEM
+//
+model Note {
+  id          String   @id @default(uuid())
+  teacherId   String
+  assignmentId String?   // 🔥 ADD THIS
+  title       String
+  content     String?
+  fileUrl     String?
+  createdAt   DateTime @default(now())
+
+  teacher User @relation(fields: [teacherId], references: [id])
+  assignment Assignment? @relation(fields: [assignmentId], references: [id])
+}
+
+//
+// 🔔 NOTIFICATIONS
+//
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+//
+// 🔥 ENUMS
+//
+enum SubmissionStatus {
+  PENDING
+  ACCEPTED
+  WRONG_ANSWER
+  RUNTIME_ERROR
+  TIME_LIMIT_EXCEEDED
+}
+
+enum AssignmentStatus {
+  PENDING
+  SUBMITTED
+  GRADED
+}
+
+enum QuestionType {
+  MCQ
+  NAT
+  CODING
+}
