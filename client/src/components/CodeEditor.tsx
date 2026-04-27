@@ -1,4 +1,6 @@
-import { useState } from "react";
+// ONLY CHANGES: boilerplate + width + external testcases support
+
+import { useState, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import { Play, Send } from "lucide-react";
 import { api } from "@/services/api";
@@ -12,8 +14,11 @@ type Props = {
   language: string;
   code: string;
   setCode: (value: string) => void;
-  onSubmit?: (code: string) => void; // ✅ NEW
-  submitting?: boolean; // ✅ NEW
+  onSubmit?: (code: string) => void;
+  submitting?: boolean;
+
+  // 🔥 NEW
+  testCases?: TestCase[];
 };
 
 export function CodeEditor({
@@ -22,15 +27,60 @@ export function CodeEditor({
   setCode,
   onSubmit,
   submitting,
+  testCases = [], // 🔥 from SolveAssessment
 }: Props) {
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
   const [input, setInput] = useState("");
   const [ghostText, setGhostText] = useState("");
 
-  const [testCases, setTestCases] = useState<TestCase[]>([
-    { input: "2", expectedOutput: "2" },
-  ]);
+  // =========================
+  // 🔥 BOILERPLATES
+  // =========================
+  const boilerplates: Record<string, string> = {
+    javascript: `function solve(input) {
+  
+}
+
+const input = require("fs").readFileSync(0, "utf-8");
+console.log(solve(input));`,
+
+    python: `def solve():
+    pass
+
+if __name__ == "__main__":
+    solve()`,
+
+    cpp: `#include <bits/stdc++.h>
+using namespace std;
+
+int main() {
+    
+    return 0;
+}`,
+
+    c: `#include <stdio.h>
+
+int main() {
+    
+    return 0;
+}`,
+
+    java: `import java.util.*;
+
+public class Main {
+    public static void main(String[] args) {
+        
+    }
+}`,
+  };
+
+  // 🔥 inject boilerplate ONLY if empty
+  useEffect(() => {
+    if (!code) {
+      setCode(boilerplates[language] || "");
+    }
+  }, [language]);
 
   const languageMap: Record<string, string> = {
     javascript: "javascript",
@@ -40,27 +90,9 @@ export function CodeEditor({
     java: "java",
   };
 
-  // 🔥 SIMPLE SUGGESTION ENGINE
-  const generateSuggestion = (code: string, lang: string) => {
-    const last = code.split("\n").pop()?.trim();
-    if (!last) return "";
-
-    if (lang === "cpp" && last === "for")
-      return ` (int i = 0; i < n; i++) {\n    \n}`;
-
-    if (lang === "python" && last === "for")
-      return ` i in range(n):\n    `;
-
-    if (lang === "javascript" && last.includes("console"))
-      return `.log("Hello");`;
-
-    if (lang === "java" && last === "for")
-      return ` (int i = 0; i < n; i++) {\n    \n}`;
-
-    return "";
-  };
-
-  // 🔥 RUN CODE
+  // =========================
+  // RUN
+  // =========================
   const handleRun = async () => {
     try {
       setRunning(true);
@@ -80,53 +112,12 @@ export function CodeEditor({
     }
   };
 
-  // 🔥 INTERNAL SUBMIT (fallback)
-  const handleInternalSubmit = async () => {
-    try {
-      setOutput("Running Test Cases...\n");
-
-      let results = "";
-
-      for (let i = 0; i < testCases.length; i++) {
-        const tc = testCases[i];
-
-        const res = await api.post("/execute", {
-          code,
-          language,
-          input: tc.input,
-        });
-
-        const actual = res.data.output?.trim();
-        const expected = tc.expectedOutput.trim();
-
-        if (actual === expected) {
-          results += `Test Case ${i + 1}: ✅ Passed\n`;
-        } else {
-          results += `Test Case ${i + 1}: ❌ Failed\nExpected: ${expected}\nGot: ${actual}\n\n`;
-        }
-      }
-
-      setOutput(results);
-    } catch {
-      setOutput("❌ Submission failed");
-    }
-  };
-
-  // 🔥 MAIN SUBMIT HANDLER
   const handleSubmitClick = () => {
-    if (onSubmit) {
-      onSubmit(code); // 🔥 external (SolveAssessment)
-    } else {
-      handleInternalSubmit(); // 🔥 fallback
-    }
-  };
-
-  const addTestCase = () => {
-    setTestCases([...testCases, { input: "", expectedOutput: "" }]);
+    if (onSubmit) onSubmit(code);
   };
 
   return (
-    <div className="flex flex-col h-[600px] border border-border rounded-lg overflow-hidden">
+    <div className="flex flex-col h-[650px] border border-border rounded-lg overflow-hidden">
 
       {/* HEADER */}
       <div className="flex justify-between px-4 py-2 bg-[#0f172a] border-b border-gray-700">
@@ -150,18 +141,14 @@ export function CodeEditor({
 
       <div className="flex flex-1">
 
-        {/* EDITOR */}
-        <div className="relative w-[60%]">
+        {/* 🔥 EDITOR BIGGER */}
+        <div className="relative w-[70%]">
           <Editor
             height="100%"
             language={languageMap[language]}
             theme="vs-dark"
             value={code}
-            onChange={(val) => {
-              const v = val || "";
-              setCode(v);
-              setGhostText(generateSuggestion(v, language));
-            }}
+            onChange={(val) => setCode(val || "")}
             options={{
               fontSize: 14,
               minimap: { enabled: false },
@@ -170,56 +157,23 @@ export function CodeEditor({
               tabSize: 2,
             }}
           />
-
-          {ghostText && (
-            <div className="absolute top-0 left-0 p-2 text-gray-500 opacity-40 pointer-events-none whitespace-pre font-mono">
-              {code + ghostText}
-            </div>
-          )}
         </div>
 
-        {/* RIGHT PANEL */}
-        <div className="w-[40%] flex flex-col bg-[#020617] border-l border-gray-700">
+        {/* 🔥 TESTCASES PANEL */}
+        <div className="w-[30%] bg-[#020617] border-l border-gray-700 flex flex-col">
 
-          {/* INPUT */}
           <div className="p-3 border-b border-gray-700">
-            <h3 className="text-xs text-gray-400 mb-2">Input</h3>
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="w-full p-2 bg-[#020617] border border-gray-700 text-gray-200 text-sm rounded focus:outline-none"
-            />
+            <h3 className="text-xs text-gray-400">Test Cases</h3>
           </div>
 
-          {/* TEST CASES */}
-          <div className="flex-1 p-3 overflow-auto">
-            <button onClick={addTestCase} className="text-xs text-white mb-3">
-              + Add Testcase
-            </button>
-
+          <div className="flex-1 overflow-auto p-3 space-y-3">
             {testCases.map((tc, i) => (
-              <div key={i} className="mb-3 p-2 bg-[#0f172a] rounded border border-gray-700">
-                <p className="text-xs text-gray-400 mb-1">Input</p>
-                <textarea
-                  value={tc.input}
-                  onChange={(e) => {
-                    const newTC = [...testCases];
-                    newTC[i].input = e.target.value;
-                    setTestCases(newTC);
-                  }}
-                  className="w-full p-1 text-xs bg-[#020617] text-gray-200 rounded mb-2"
-                />
+              <div key={i} className="p-2 bg-[#0f172a] rounded border border-gray-700">
+                <p className="text-xs text-gray-400">Input</p>
+                <pre className="text-xs text-white">{tc.input}</pre>
 
-                <p className="text-xs text-gray-400 mb-1">Expected</p>
-                <textarea
-                  value={tc.expectedOutput}
-                  onChange={(e) => {
-                    const newTC = [...testCases];
-                    newTC[i].expectedOutput = e.target.value;
-                    setTestCases(newTC);
-                  }}
-                  className="w-full p-1 text-xs bg-[#020617] text-gray-200 rounded"
-                />
+                <p className="text-xs text-gray-400 mt-2">Expected</p>
+                <pre className="text-xs text-green-400">{tc.expectedOutput}</pre>
               </div>
             ))}
           </div>
@@ -233,4 +187,4 @@ export function CodeEditor({
       </div>
     </div>
   );
-}
+} 

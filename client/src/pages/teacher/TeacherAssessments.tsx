@@ -1,10 +1,13 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
-import { AssessmentCard } from "@/components/AssessmentCard";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { publishAssessment } from "@/services/assessment";
+import {
+  publishAssessment,
+  deleteAssessment,
+  extendDeadline,
+} from "@/services/assessment";
 
 export default function TeacherAssessments() {
   const { user } = useAuth();
@@ -17,10 +20,10 @@ export default function TeacherAssessments() {
     (a) => a.teacherId === user?.id
   );
 
-  const handlePublish = async (
-    e: React.MouseEvent,
-    id: string
-  ) => {
+  // =========================
+  // PUBLISH
+  // =========================
+  const handlePublish = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     try {
       setLoadingId(id);
@@ -30,6 +33,52 @@ export default function TeacherAssessments() {
       console.error("Publish failed", err);
     } finally {
       setLoadingId(null);
+    }
+  };
+
+  // =========================
+  // DELETE
+  // =========================
+  const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+
+    const confirmDelete = window.confirm(
+      "⚠️ Are you sure you want to permanently delete this assessment?\nThis action cannot be undone."
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await deleteAssessment(id);
+      await refreshAssessments();
+    } catch (err) {
+      console.error("Delete failed", err);
+    }
+  };
+
+  // =========================
+  // EXTEND DEADLINE
+  // =========================
+  const handleExtend = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+
+    const newDate = prompt(
+      "Enter new deadline (YYYY-MM-DDTHH:mm format)"
+    );
+
+    if (!newDate) return;
+
+    const confirmExtend = window.confirm(
+      "Are you sure you want to extend the deadline?"
+    );
+
+    if (!confirmExtend) return;
+
+    try {
+      await extendDeadline(id, newDate);
+      await refreshAssessments();
+    } catch (err) {
+      console.error("Extend failed", err);
     }
   };
 
@@ -54,7 +103,6 @@ export default function TeacherAssessments() {
         <div className="grid gap-4">
 
           {myAssessments.map((assessment) => {
-
             const subs = submissions.filter(
               (s) => s.assignmentId === assessment.id
             );
@@ -77,7 +125,6 @@ export default function TeacherAssessments() {
                     Attempts: {subs.length}
                   </p>
 
-                  {/* STATUS */}
                   <span
                     className={`text-xs px-2 py-1 rounded mt-1 inline-block ${
                       assessment.isPublished
@@ -108,9 +155,7 @@ export default function TeacherAssessments() {
                   {/* PUBLISH */}
                   {!assessment.isPublished && (
                     <button
-                      onClick={(e) =>
-                        handlePublish(e, assessment.id)
-                      }
+                      onClick={(e) => handlePublish(e, assessment.id)}
                       disabled={loadingId === assessment.id}
                       className="btn-primary text-sm"
                     >
@@ -119,6 +164,24 @@ export default function TeacherAssessments() {
                         : "Publish"}
                     </button>
                   )}
+
+                  {/* EXTEND (ONLY IF PUBLISHED) */}
+                  {assessment.isPublished && (
+                    <button
+                      onClick={(e) => handleExtend(e, assessment.id)}
+                      className="btn-secondary text-sm"
+                    >
+                      Extend
+                    </button>
+                  )}
+
+                  {/* DELETE (ALWAYS AVAILABLE) */}
+                  <button
+                    onClick={(e) => handleDelete(e, assessment.id)}
+                    className="text-red-500 hover:text-red-700 text-sm"
+                  >
+                    Delete
+                  </button>
 
                 </div>
               </div>

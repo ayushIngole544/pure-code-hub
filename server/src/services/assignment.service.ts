@@ -140,6 +140,44 @@ export const publishAssignment = async (id: string) => {
 };
 
 // ==========================================
+// ❌ DELETE ASSIGNMENT (PERMANENT)
+// ==========================================
+export const deleteAssignment = async (id: string) => {
+  return await prisma.$transaction(async (tx) => {
+
+    // delete questions
+    await tx.question.deleteMany({
+      where: { assignmentId: id },
+    });
+
+    // delete problem links
+    await tx.assignmentProblem.deleteMany({
+      where: { assignmentId: id },
+    });
+
+    // delete assignment
+    return await tx.assignment.delete({
+      where: { id },
+    });
+  });
+};
+
+// ==========================================
+// ⏳ EXTEND DEADLINE
+// ==========================================
+export const extendAssignmentDeadline = async (
+  id: string,
+  dueDate: string
+) => {
+  return await prisma.assignment.update({
+    where: { id },
+    data: {
+      dueDate: new Date(dueDate),
+    },
+  });
+};
+
+// ==========================================
 // 📚 GET ALL (STUDENT)
 // ==========================================
 export const getAllAssignments = async (user?: any) => {

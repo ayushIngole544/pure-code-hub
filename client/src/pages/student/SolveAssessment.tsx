@@ -77,6 +77,9 @@ export default function SolveAssessment() {
     return <div>No questions available</div>;
 
   const q = assessment.questions[currentIndex];
+  console.log("FULL QUESTION:", q);
+console.log("PROBLEM:", q?.problem);
+console.log("TESTCASES:", q?.problem?.testCases);
 
   // =========================
   // SUBMIT
@@ -91,11 +94,15 @@ export default function SolveAssessment() {
         let res;
 
         if (ques.type === "CODING") {
+          if (!codes[ques.id]) continue;
+
           res = await submitQuestion(assessment.id, ques.id, {
             code: codes[ques.id],
             language,
           });
         } else {
+          if (!answers[ques.id]) continue;
+
           res = await submitQuestion(assessment.id, ques.id, {
             answer: answers[ques.id],
           });
@@ -150,10 +157,12 @@ export default function SolveAssessment() {
             {q.description}
           </p>
 
-          {/* MCQ */}
+          {/* =========================
+              MCQ (FIXED KEY BUG)
+          ========================= */}
           {q.type === "MCQ" &&
-            q.options?.map((opt: string) => (
-              <label key={opt} className="block mb-2">
+            q.options?.map((opt: string, idx: number) => (
+              <label key={`${q.id}-${idx}`} className="block mb-2">
                 <input
                   type="radio"
                   checked={answers[q.id] === opt}
@@ -183,9 +192,7 @@ export default function SolveAssessment() {
             />
           )}
 
-          {/* =========================
-              RESULT DISPLAY
-          ========================= */}
+          {/* RESULT */}
           {results[q.id] && (
             <div className="mt-6">
 
@@ -206,7 +213,6 @@ export default function SolveAssessment() {
                 <p>Score: {results[q.id].score}</p>
               </div>
 
-              {/* CODING TEST CASES */}
               {results[q.id].results && (
                 <div className="space-y-3">
                   {results[q.id].results.map(
@@ -283,7 +289,6 @@ export default function SolveAssessment() {
         {q.type === "CODING" && (
           <div className="card-elevated p-2">
 
-            {/* LANGUAGE SELECTOR */}
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
@@ -297,15 +302,27 @@ export default function SolveAssessment() {
             </select>
 
             <CodeEditor
-              code={codes[q.id]}
-              setCode={(val) =>
-                setCodes((prev) => ({
-                  ...prev,
-                  [q.id]: val,
-                }))
-              }
-              language={language}
-            />
+  code={codes[q.id]}
+  setCode={(val) =>
+    setCodes((prev) => ({
+      ...prev,
+      [q.id]: val,
+    }))
+  }
+  language={language}
+
+  // 🔥 REAL TESTCASES FROM DB
+  testCases={
+  (q.problem?.testCases ||
+    q.problem?.testcases ||   // fallback
+    q.testCases ||            // fallback
+    []
+  ).map((tc: any) => ({
+    input: tc.input,
+    expectedOutput: tc.expectedOutput || tc.output,
+  }))
+}
+/>
           </div>
         )}
       </div>

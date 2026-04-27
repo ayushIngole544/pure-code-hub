@@ -55,6 +55,9 @@ model Problem {
   submissions Submission[]
   assignments AssignmentProblem[]
   testCases   TestCase[]
+
+  // 🔥 ADD THIS
+  questions   Question[]
 }
 
 //
@@ -115,10 +118,13 @@ model Question {
 
   // MCQ
   options       Json?
-  correctAnswer String? // 🔒 teacher only
+  correctAnswer String?
 
   // CODING
   problemId     String?
+
+  // 🔥 ADD THIS LINE (CRITICAL)
+  problem       Problem? @relation(fields: [problemId], references: [id])
 
   marks         Int
 

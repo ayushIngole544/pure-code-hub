@@ -105,3 +105,81 @@ export const publishAssignment = async (
     next(error);
   }
 };
+
+// ==========================================
+// ❌ DELETE ASSIGNMENT
+// ==========================================
+export const deleteAssignment = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const assignmentIdParam = req.params.id;
+
+    if (!assignmentIdParam || Array.isArray(assignmentIdParam)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid assignment ID",
+      });
+      return;
+    }
+
+    const assignment = await assignmentService.deleteAssignment(
+      assignmentIdParam
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Assignment deleted permanently",
+      assignment,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ==========================================
+// ⏳ EXTEND DEADLINE
+// ==========================================
+export const extendDeadline = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const assignmentId = req.params.id;
+
+    if (!assignmentId || Array.isArray(assignmentId)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid assignment ID",
+      });
+      return;
+    }
+
+    const { dueDate } = req.body;
+
+    if (!dueDate) {
+      res.status(400).json({
+        success: false,
+        message: "dueDate is required",
+      });
+      return;
+    }
+
+    const assignment =
+      await assignmentService.extendAssignmentDeadline(
+        assignmentId,
+        dueDate
+      );
+
+    res.status(200).json({
+      success: true,
+      message: "Deadline updated successfully",
+      assignment,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -17,8 +17,21 @@ export const publishAssessment = async (id: string) => {
   return res.data;
 };
 
+// ❌ DELETE ASSESSMENT
+export const deleteAssessment = async (id: string) => {
+  const res = await api.delete(`/assessments/${id}`);
+  return res.data;
+};
 export const getAssessmentWithQuestions = async (id: string) => {
   const res = await api.get(`/assessments/${id}`);
+  return res.data;
+};
+
+// ⏳ EXTEND DEADLINE
+export const extendDeadline = async (id: string, dueDate: string) => {
+  const res = await api.patch(`/assessments/${id}/extend`, {
+    dueDate,
+  });
   return res.data;
 };
 
@@ -26,4 +39,4 @@ export const getAssessmentWithQuestions = async (id: string) => {
 export const getLeaderboard = async (id: string) => {
   const res = await api.get(`/assessments/${id}/leaderboard`);
   return res.data;
-};
+};

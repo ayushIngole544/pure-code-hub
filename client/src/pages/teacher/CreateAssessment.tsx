@@ -133,11 +133,13 @@ export default function CreateAssessment() {
   // SUBMIT
   // =========================
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user || questions.length === 0) return;
+  e.preventDefault();
 
-    setSubmitting(true);
+  if (!user || questions.length === 0) return;
 
+  setSubmitting(true);
+
+  try {
     const safeQuestions = questions.map((q) => ({
       ...q,
       marks: Number(q.marks) || 10,
@@ -147,16 +149,24 @@ export default function CreateAssessment() {
           : q.correctAnswer,
     }));
 
-    await addAssessment({
+    const res = await addAssessment({
       title,
       description,
       dueDate: new Date(dueDate).toISOString(),
       questions: safeQuestions,
     });
 
+    // ✅ IMPORTANT FIX
+    if (res) {
+      navigate("/teacher/assessments");
+    }
+
+  } catch (err) {
+    console.error("Create Assessment Failed:", err);
+  } finally {
     setSubmitting(false);
-    navigate("/teacher/assessments");
-  };
+  }
+};
 
   return (
     <div className="page-container">

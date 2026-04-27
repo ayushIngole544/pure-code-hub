@@ -3,6 +3,8 @@ import {
   createAssignment,
   createAssignmentFull,
   publishAssignment,
+  deleteAssignment,     // ✅ ADD THIS
+  extendDeadline,       // ✅ ADD THIS
 } from "../controllers/assignment.controller";
 import { getAllAssignments } from "../services/assignment.service";
 import { fetchAssignmentLeaderboard } from "../controllers/leaderboard.controller";
@@ -142,35 +144,36 @@ router.get("/", authenticate, async (req, res, next) => {
   }
 });
 
+router.delete(
+  "/:id",
+  authenticate,
+  authorizeRoles("TEACHER"),
+  deleteAssignment
+);
+router.patch(
+  "/:id/extend",
+  authenticate,
+  authorizeRoles("TEACHER"),
+  extendDeadline
+);
+
 // =======================================
 // 📄 GET SINGLE ASSIGNMENT
 // =======================================
 
-router.get("/:id", authenticate, async (req, res, next) => {
-  try {
-    const assignment = await prisma.assignment.findUnique({
-      where: { id: req.params.id as string },
-      include: {
-        problems: {
-          include: {
-            problem: {
-              include: {
-                testCases: true,
-              },
-            },
-          },
-        },
-        questions: true,
-        notes: true,
-      },
-    });
+const assignment = await prisma.assignment.findUnique({
+  where: { id: req.params.id as string },
 
-    res.status(200).json({
-      success: true,
-      assignment,
-    });
-  } catch (err) {
-    next(err);
+  include: {
+    questions: {
+      include: {
+        problem: {
+          include: {
+            testCases: true
+          }
+        }
+      }
+    }
   }
 });
 
