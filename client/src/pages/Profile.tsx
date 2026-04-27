@@ -27,7 +27,7 @@ export default function Profile() {
 
   // 🔥 FILTER USER SUBMISSIONS
   const mySubmissions = submissions.filter(
-    (s) => s.student_id === user?.id
+    (s) => s.userId === user?.id
   );
 
   const correctSubmissions = mySubmissions.filter(
@@ -35,7 +35,7 @@ export default function Profile() {
   ).length;
 
   const uniqueAssessments = new Set(
-    mySubmissions.map((s) => s.assessment_id)
+    mySubmissions.map((s) => s.assignmentId)
   ).size;
 
   const accuracy =

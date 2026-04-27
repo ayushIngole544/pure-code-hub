@@ -2,7 +2,8 @@ import { Response } from "express";
 import prisma from "../config/prisma";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import { SubmissionStatus } from "@prisma/client";
-import { submissionQueue } from "../queues/submission.queue";
+import { submissionQueue, isQueueAvailable } from "../queues/submission.queue";
+import { evaluateSubmission } from "../services/evaluation.service";
 
 // ==========================================
 // 🔹 Normalize language
@@ -107,19 +108,39 @@ export const submitQuestion = async (req: AuthRequest, res: Response) => {
         },
       });
 
-      // 🔥 Queue execution
-      await submissionQueue.add("process-submission", {
-        submissionId: submission.id,
-        problemId: question.problemId,
-        code,
-        language: normalizedLanguage,
-      });
+      // 🔥 Try queue, fallback to direct evaluation
+      const queueUp = await isQueueAvailable();
 
-      return res.status(200).json({
-        success: true,
-        message: "Coding submission queued",
-        submissionId: submission.id,
-      });
+      if (queueUp) {
+        await submissionQueue.add("process-submission", {
+          submissionId: submission.id,
+          problemId: question.problemId,
+          code,
+          language: normalizedLanguage,
+        });
+
+        return res.status(200).json({
+          success: true,
+          message: "Coding submission queued",
+          submissionId: submission.id,
+        });
+      } else {
+        // Direct evaluation (no Redis)
+        const result = await evaluateSubmission(
+          submission.id,
+          question.problemId!,
+          code,
+          normalizedLanguage
+        );
+
+        return res.status(200).json({
+          success: true,
+          submissionId: submission.id,
+          status: result.status,
+          score: result.score,
+          results: result.results,
+        });
+      }
     }
 
     // ==========================================
@@ -274,6 +295,96 @@ export const getSubmissionById = async (
     return res.status(500).json({
       success: false,
       message: error.message || "Fetch failed",
+    });
+  }
+};
+
+// ==========================================
+// 🔥 SUBMIT PROBLEM (Professional module)
+// Direct execution without BullMQ queue
+// ==========================================
+export const submitProblem = async (req: AuthRequest, res: Response) => {
+  try {
+    const { problemId, code, language } = req.body;
+    const userId = req.user?.userId;
+
+    if (!userId || !problemId || !code || !language) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields: problemId, code, language",
+      });
+    }
+
+    const normalizedLanguage = normalizeLanguage(language);
+    if (!isSupportedLanguage(normalizedLanguage)) {
+      return res.status(400).json({
+        success: false,
+        message: "Unsupported language",
+      });
+    }
+
+    // Check problem exists
+    const problem = await prisma.problem.findUnique({
+      where: { id: problemId },
+    });
+
+    if (!problem) {
+      return res.status(404).json({
+        success: false,
+        message: "Problem not found",
+      });
+    }
+
+    // Create submission record
+    const submission = await prisma.submission.create({
+      data: {
+        userId,
+        problemId,
+        code,
+        language: normalizedLanguage,
+        status: SubmissionStatus.PENDING,
+        score: 0,
+      },
+    });
+
+    // Try queue, fallback to direct
+    const queueUp = await isQueueAvailable();
+
+    if (queueUp) {
+      await submissionQueue.add("process-submission", {
+        submissionId: submission.id,
+        problemId,
+        code,
+        language: normalizedLanguage,
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: "Submission queued for evaluation",
+        submissionId: submission.id,
+      });
+    }
+
+    // Direct evaluation
+    const result = await evaluateSubmission(
+      submission.id,
+      problemId,
+      code,
+      normalizedLanguage
+    );
+
+    return res.status(200).json({
+      success: true,
+      submissionId: submission.id,
+      status: result.status,
+      score: result.score,
+      results: result.results,
+    });
+  } catch (error: any) {
+    console.error("Submit Problem Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Submission failed",
     });
   }
 };

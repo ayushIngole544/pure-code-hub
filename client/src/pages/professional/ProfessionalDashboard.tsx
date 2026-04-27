@@ -1,7 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useData } from '@/contexts/DataContext';
 import { StatCard } from '@/components/StatCard';
-import { AssessmentCard } from '@/components/AssessmentCard';
+import { ProblemCard } from '@/components/ProblemCard';
 import { useNavigate } from 'react-router-dom';
 import { AIGenerator } from '@/components/AIGenerator';
 import { Code, Target, Zap, Award } from 'lucide-react';
@@ -10,20 +10,18 @@ export default function ProfessionalDashboard() {
   const { user } = useAuth();
 
   // 🔥 FIX: use submissions directly
-  const { assessments, submissions } = useData();
+  const { assessments, submissions, problems } = useData();
 
   const navigate = useNavigate();
 
   // 🔥 FILTER USER SUBMISSIONS
   const mySubmissions = user
-    ? submissions.filter((s) => s.student_id === user.id)
+    ? submissions.filter((s) => s.userId === user.id)
     : [];
 
   // 🔥 FIX STATUS
   const correctSubmissions = mySubmissions.filter(
-    (s) =>
-      s.status === 'correct' ||
-      s.status === 'ACCEPTED'
+    (s) => s.status === 'ACCEPTED'
   ).length;
 
   const getSkillLevel = () => {
@@ -41,13 +39,7 @@ export default function ProfessionalDashboard() {
 
   const skill = getSkillLevel();
 
-  const challenges = assessments
-    .filter(
-      (a) =>
-        a.is_published &&
-        a.difficulty !== 'easy'
-    )
-    .slice(0, 6);
+  const challengeProblems = problems.slice(0, 6);
 
   return (
     <div className="page-container">
@@ -101,7 +93,7 @@ export default function ProfessionalDashboard() {
 
         <StatCard
           title="Challenges Available"
-          value={challenges.length}
+          value={challengeProblems.length}
           icon={<Zap className="w-6 h-6" />}
           description="Ready for you"
         />
@@ -131,16 +123,16 @@ export default function ProfessionalDashboard() {
           </button>
         </div>
 
-        {challenges.length > 0 ? (
+        {challengeProblems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
-            {challenges.map((assessment) => (
-              <AssessmentCard
-                key={assessment.id}
-                assessment={assessment}
+            {challengeProblems.map((problem) => (
+              <ProblemCard
+                key={problem.id}
+                problem={problem}
                 onClick={() =>
                   navigate(
-                    `/professional/challenges/${assessment.id}`
+                    `/professional/challenges/${problem.id}`
                   )
                 }
               />

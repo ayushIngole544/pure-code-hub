@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useData } from "@/contexts/DataContext";
 import { AssessmentCard } from "@/components/AssessmentCard";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import { publishAssessment } from "@/services/assessment";
 
@@ -11,37 +11,32 @@ export default function TeacherAssessments() {
   const { assessments, submissions, refreshAssessments } = useData();
   const navigate = useNavigate();
 
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
-  // ✅ FIXED: use teacherId ONLY
   const myAssessments = assessments.filter(
     (a) => a.teacherId === user?.id
   );
 
-  const filteredAssessments = myAssessments.filter((a) => {
-    const matchesSearch =
-      a.title.toLowerCase().includes(search.toLowerCase());
-
-    let matchesStatus = true;
-    if (filterStatus === "published") matchesStatus = a.isPublished === true;
-    if (filterStatus === "draft") matchesStatus = a.isPublished === false;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const handlePublish = async (e: React.MouseEvent, id: string) => {
+  const handlePublish = async (
+    e: React.MouseEvent,
+    id: string
+  ) => {
     e.stopPropagation();
     try {
+      setLoadingId(id);
       await publishAssessment(id);
       await refreshAssessments();
     } catch (err) {
-      console.error("Failed to publish", err);
+      console.error("Publish failed", err);
+    } finally {
+      setLoadingId(null);
     }
   };
 
   return (
     <div className="page-container">
+
+      {/* HEADER */}
       <div className="flex justify-between mb-6">
         <h1 className="text-2xl font-bold">My Assessments</h1>
 
@@ -54,44 +49,89 @@ export default function TeacherAssessments() {
         </button>
       </div>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search..."
-        className="input-field mb-4"
-      />
+      {/* LIST */}
+      {myAssessments.length > 0 ? (
+        <div className="grid gap-4">
 
-      <select
-        value={filterStatus}
-        onChange={(e) => setFilterStatus(e.target.value)}
-        className="input-field mb-4"
-      >
-        <option value="all">All</option>
-        <option value="published">Published</option>
-        <option value="draft">Draft</option>
-      </select>
+          {myAssessments.map((assessment) => {
 
-      {filteredAssessments.length > 0 ? (
-        filteredAssessments.map((assessment) => {
-          // ✅ FIXED: assignmentId
-          const subs = submissions.filter(
-            (s) => s.assignmentId === assessment.id
-          );
+            const subs = submissions.filter(
+              (s) => s.assignmentId === assessment.id
+            );
 
-          return (
-            <AssessmentCard
-              key={assessment.id}
-              assessment={assessment}
-              onClick={() =>
-                navigate(`/teacher/assessments/${assessment.id}`)
-              }
-              attempts={subs.length}
-              onPublish={(e) => handlePublish(e, assessment.id)}
-            />
-          );
-        })
+            return (
+              <div
+                key={assessment.id}
+                className="card-elevated p-4 flex justify-between items-center cursor-pointer hover:scale-[1.01] transition"
+                onClick={() =>
+                  navigate(`/teacher/assessments/${assessment.id}`)
+                }
+              >
+                {/* LEFT */}
+                <div>
+                  <h2 className="text-lg font-semibold">
+                    {assessment.title}
+                  </h2>
+
+                  <p className="text-sm text-muted-foreground">
+                    Attempts: {subs.length}
+                  </p>
+
+                  {/* STATUS */}
+                  <span
+                    className={`text-xs px-2 py-1 rounded mt-1 inline-block ${
+                      assessment.isPublished
+                        ? "bg-green-500/20 text-green-400"
+                        : "bg-yellow-500/20 text-yellow-400"
+                    }`}
+                  >
+                    {assessment.isPublished ? "Published" : "Draft"}
+                  </span>
+                </div>
+
+                {/* RIGHT ACTIONS */}
+                <div className="flex gap-2">
+
+                  {/* EDIT (ONLY IF DRAFT) */}
+                  {!assessment.isPublished && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/teacher/create?edit=${assessment.id}`);
+                      }}
+                      className="btn-secondary text-sm"
+                    >
+                      Edit
+                    </button>
+                  )}
+
+                  {/* PUBLISH */}
+                  {!assessment.isPublished && (
+                    <button
+                      onClick={(e) =>
+                        handlePublish(e, assessment.id)
+                      }
+                      disabled={loadingId === assessment.id}
+                      className="btn-primary text-sm"
+                    >
+                      {loadingId === assessment.id
+                        ? "Publishing..."
+                        : "Publish"}
+                    </button>
+                  )}
+
+                </div>
+              </div>
+            );
+          })}
+
+        </div>
       ) : (
-        <p>No assessments</p>
+        <div className="card-elevated text-center py-10">
+          <p className="text-muted-foreground">
+            No assessments yet
+          </p>
+        </div>
       )}
     </div>
   );

@@ -23,6 +23,7 @@ model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
+  name      String?
   roleId    String
   role      Role     @relation(fields: [roleId], references: [id])
   createdAt DateTime @default(now())
@@ -34,7 +35,6 @@ model User {
   notifications Notification[]
   notes         Note[]
 
-  // 🔥 ADD THIS LINE
   bookmarks Bookmark[]
 }
 
@@ -49,7 +49,6 @@ model Problem {
   createdBy   String
   createdAt   DateTime @default(now())
 
-  // 🔥 ADD THIS
   marks       Int      @default(10)
 
   creator     User                @relation("CreatedProblems", fields: [createdBy], references: [id])
@@ -87,7 +86,7 @@ model Assignment {
   students AssignmentStudent[]
   questions Question[]
 
-  notes Note[]   // ✅ FIX ADDED
+  notes Note[]
 }
 
 //
@@ -105,7 +104,7 @@ model AssignmentProblem {
 }
 
 //
-// 🔥 QUESTION MODEL (NEW CORE FEATURE)
+// 🧩 Question Model
 //
 model Question {
   id            String   @id @default(uuid())
@@ -141,7 +140,7 @@ model Submission {
 
   language  String?
   status    SubmissionStatus @default(PENDING)
-  score     Int? // 🔥 NEW
+  score     Int?
 
   createdAt DateTime @default(now())
 
@@ -184,7 +183,7 @@ model Bookmark {
 model Note {
   id          String   @id @default(uuid())
   teacherId   String
-  assignmentId String?   // 🔥 ADD THIS
+  assignmentId String?
   title       String
   content     String?
   fileUrl     String?

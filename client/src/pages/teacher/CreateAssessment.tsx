@@ -100,15 +100,29 @@ export default function CreateAssessment() {
       });
 
       if (res?.question) {
-        setQuestions((prev) => [
-          ...prev,
-          {
-            ...res.question,
-            type: aiType,
-            marks: 10,
-          },
-        ]);
-      }
+  const q = res.question;
+
+  // 🔥 FIX: normalize testCases output → expectedOutput
+  let fixedTestCases = q.testCases;
+
+  if (q.testCases) {
+    fixedTestCases = q.testCases.map((tc: any) => ({
+      input: tc.input,
+      expectedOutput: tc.output || tc.expectedOutput || "",
+      isHidden: tc.isHidden ?? false,
+    }));
+  }
+
+  setQuestions((prev) => [
+    ...prev,
+    {
+      ...q,
+      testCases: fixedTestCases,
+      type: aiType,
+      marks: 10,
+    },
+  ]);
+}
     } catch (err) {
       console.error("AI failed", err);
     }
@@ -336,31 +350,44 @@ export default function CreateAssessment() {
 
                 {/* CODING */}
                 {q.type === "CODING" &&
-                  q.testCases?.map((tc, idx) => (
-                    <div key={idx} className="grid grid-cols-2 gap-2 mb-2">
-                      <textarea
-                        className="input-field"
-                        placeholder="Input"
-                        value={tc.input}
-                        onChange={(e) => {
-                          const t = [...(q.testCases || [])];
-                          t[idx].input = e.target.value;
-                          updateQuestion(i, { testCases: t });
-                        }}
-                      />
-                      <textarea
-                        className="input-field"
-                        placeholder="Output"
-                        value={tc.expectedOutput}
-                        onChange={(e) => {
-                          const t = [...(q.testCases || [])];
-                          t[idx].expectedOutput =
-                            e.target.value;
-                          updateQuestion(i, { testCases: t });
-                        }}
-                      />
-                    </div>
-                  ))}
+  q.testCases?.map((tc, idx) => (
+    <div key={idx} className="grid grid-cols-2 gap-2 mb-3 border p-3 rounded">
+      <textarea
+        className="input-field"
+        placeholder="Input"
+        value={tc.input}
+        onChange={(e) => {
+          const t = [...(q.testCases || [])];
+          t[idx].input = e.target.value;
+          updateQuestion(i, { testCases: t });
+        }}
+      />
+
+      <textarea
+        className="input-field"
+        placeholder="Output"
+        value={tc.expectedOutput}
+        onChange={(e) => {
+          const t = [...(q.testCases || [])];
+          t[idx].expectedOutput = e.target.value;
+          updateQuestion(i, { testCases: t });
+        }}
+      />
+
+      <label className="col-span-2 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={tc.isHidden}
+          onChange={(e) => {
+            const t = [...(q.testCases || [])];
+            t[idx].isHidden = e.target.checked;
+            updateQuestion(i, { testCases: t });
+          }}
+        />
+        Hidden Test Case
+      </label>
+    </div>
+  ))}
               </div>
             ))}
           </div>

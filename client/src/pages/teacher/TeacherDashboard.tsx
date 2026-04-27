@@ -32,9 +32,7 @@ export default function TeacherDashboard() {
 
   // 🔥 STATUS handling
   const correctSubmissions = mySubmissions.filter(
-    (s) =>
-      s.status === "ACCEPTED" ||
-      s.status === "correct"
+    (s) => s.status === "ACCEPTED"
   ).length;
 
   const totalAttempts = mySubmissions.length;
@@ -169,9 +167,7 @@ export default function TeacherDashboard() {
               );
 
               const correct = subs.filter(
-                (s) =>
-                  s.status === "ACCEPTED" ||
-                  s.status === "correct"
+                (s) => s.status === "ACCEPTED"
               ).length;
 
               return (

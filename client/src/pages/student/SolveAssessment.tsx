@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { useData } from "@/contexts/DataContext";
 import { CodeEditor } from "@/components/CodeEditor";
 import { Loader2 } from "lucide-react";
+import { submitQuestion } from "@/services/submission";
 
 export default function SolveAssessment() {
   const { id } = useParams<{ id: string }>();
@@ -14,31 +15,32 @@ export default function SolveAssessment() {
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [codes, setCodes] = useState<Record<string, string>>({});
+  const [language, setLanguage] = useState("javascript");
 
-  // ================================
-  // 🔥 FETCH ASSESSMENT
-  // ================================
+  const [results, setResults] = useState<Record<string, any>>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  // =========================
+  // FETCH ASSESSMENT
+  // =========================
   useEffect(() => {
     if (!id) return;
 
     getAssessmentWithQuestions(id)
-      .then((data) => {
-        // ✅ data is already normalized (fixed in service)
-        setAssessment(data);
+      .then((res: any) => {
+        const a = res.assignment || res;
+        setAssessment(a);
 
-        const initialAnswers: Record<string, string> = {};
-        const initialCodes: Record<string, string> = {};
+        const ansMap: any = {};
+        const codeMap: any = {};
 
-        data?.questions?.forEach((q: any) => {
-          if (q.type === "CODING") {
-            initialCodes[q.id] = "";
-          } else {
-            initialAnswers[q.id] = "";
-          }
+        a.questions?.forEach((q: any) => {
+          if (q.type === "CODING") codeMap[q.id] = "";
+          else ansMap[q.id] = "";
         });
 
-        setAnswers(initialAnswers);
-        setCodes(initialCodes);
+        setAnswers(ansMap);
+        setCodes(codeMap);
       })
       .catch((err) => {
         console.error("Error loading assessment:", err);
@@ -46,9 +48,22 @@ export default function SolveAssessment() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  // ================================
-  // 🔥 SAFETY (NO WHITE SCREEN)
-  // ================================
+  // =========================
+  // EXPIRED CHECK
+  // =========================
+  if (assessment?.dueDate && new Date() > new Date(assessment.dueDate)) {
+    return (
+      <div className="page-container text-center">
+        <h1 className="text-2xl font-bold text-red-500">
+          Assessment Expired
+        </h1>
+      </div>
+    );
+  }
+
+  // =========================
+  // LOADING
+  // =========================
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -57,71 +72,95 @@ export default function SolveAssessment() {
     );
   }
 
-  if (!assessment) {
-    return <div>No assessment found</div>;
-  }
-
-  if (!assessment.questions || assessment.questions.length === 0) {
+  if (!assessment) return <div>No assessment found</div>;
+  if (!assessment.questions?.length)
     return <div>No questions available</div>;
-  }
 
-  const currentQuestion = assessment.questions[currentIndex];
+  const q = assessment.questions[currentIndex];
 
-  if (!currentQuestion) {
-    return <div>Loading question...</div>;
-  }
+  // =========================
+  // SUBMIT
+  // =========================
+  const handleSubmit = async () => {
+    setSubmitting(true);
 
-  // ================================
-  // 🔥 HANDLERS
-  // ================================
-  const handleNext = () => {
-    if (currentIndex < assessment.questions.length - 1) {
-      setCurrentIndex((prev) => prev + 1);
+    try {
+      const allResults: Record<string, any> = {};
+
+      for (const ques of assessment.questions) {
+        let res;
+
+        if (ques.type === "CODING") {
+          res = await submitQuestion(assessment.id, ques.id, {
+            code: codes[ques.id],
+            language,
+          });
+        } else {
+          res = await submitQuestion(assessment.id, ques.id, {
+            answer: answers[ques.id],
+          });
+        }
+
+        allResults[ques.id] = res;
+      }
+
+      setResults(allResults);
+    } catch (err: any) {
+      alert(err.message || "Submission failed");
     }
+
+    setSubmitting(false);
   };
 
-  const handlePrev = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
-    }
-  };
+  // =========================
+  // NAVIGATION
+  // =========================
+  const next = () =>
+    setCurrentIndex((i) =>
+      i < assessment.questions.length - 1 ? i + 1 : i
+    );
 
-  // ================================
-  // 🔥 RENDER
-  // ================================
+  const prev = () =>
+    setCurrentIndex((i) => (i > 0 ? i - 1 : i));
+
+  // =========================
+  // UI
+  // =========================
   return (
-    <div className="h-screen flex flex-col">
+    <div className="page-container">
+
       {/* HEADER */}
-      <div className="p-4 border-b">
+      <div className="card-elevated p-4 mb-4">
         <h1 className="text-xl font-bold">{assessment.title}</h1>
-        <p>
-          Question {currentIndex + 1} / {assessment.questions.length}
+        <p className="text-muted-foreground">
+          Question {currentIndex + 1}/{assessment.questions.length}
         </p>
       </div>
 
-      {/* BODY */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="grid md:grid-cols-[40%_60%] gap-4">
+
         {/* QUESTION PANEL */}
-        <div className="w-full md:w-1/2 p-6 overflow-auto">
+        <div className="card-elevated p-6 overflow-auto max-h-[75vh]">
+
           <h2 className="text-lg font-semibold mb-2">
-            {currentQuestion.title}
+            {q.title}
           </h2>
 
-          <p className="mb-4">{currentQuestion.description}</p>
+          <p className="text-muted-foreground mb-4 whitespace-pre-wrap">
+            {q.description}
+          </p>
 
           {/* MCQ */}
-          {currentQuestion.type === "MCQ" &&
-            currentQuestion.options?.map((opt: string) => (
+          {q.type === "MCQ" &&
+            q.options?.map((opt: string) => (
               <label key={opt} className="block mb-2">
                 <input
                   type="radio"
-                  name={currentQuestion.id}
-                  value={opt}
-                  checked={answers[currentQuestion.id] === opt}
+                  checked={answers[q.id] === opt}
                   onChange={() =>
                     setAnswers((prev) => ({
                       ...prev,
-                      [currentQuestion.id]: opt,
+                      [q.id]: opt,
                     }))
                   }
                 />
@@ -130,37 +169,110 @@ export default function SolveAssessment() {
             ))}
 
           {/* NAT */}
-          {currentQuestion.type === "NAT" && (
+          {q.type === "NAT" && (
             <input
-              type="text"
-              value={answers[currentQuestion.id] || ""}
+              value={answers[q.id]}
               onChange={(e) =>
                 setAnswers((prev) => ({
                   ...prev,
-                  [currentQuestion.id]: e.target.value,
+                  [q.id]: e.target.value,
                 }))
               }
-              className="border p-2 w-full"
-              placeholder="Enter your answer"
+              className="input-field"
+              placeholder="Enter answer"
             />
           )}
 
-          {/* NAV BUTTONS */}
+          {/* =========================
+              RESULT DISPLAY
+          ========================= */}
+          {results[q.id] && (
+            <div className="mt-6">
+
+              <div className="p-3 rounded bg-muted mb-4">
+                <p className="font-semibold">
+                  Status:{" "}
+                  <span
+                    className={
+                      results[q.id].status === "ACCEPTED"
+                        ? "text-green-500"
+                        : "text-red-500"
+                    }
+                  >
+                    {results[q.id].status}
+                  </span>
+                </p>
+
+                <p>Score: {results[q.id].score}</p>
+              </div>
+
+              {/* CODING TEST CASES */}
+              {results[q.id].results && (
+                <div className="space-y-3">
+                  {results[q.id].results.map(
+                    (tc: any, index: number) => (
+                      <div
+                        key={index}
+                        className={`p-3 rounded border ${
+                          tc.passed
+                            ? "border-green-500 bg-green-500/10"
+                            : "border-red-500 bg-red-500/10"
+                        }`}
+                      >
+                        <div className="flex justify-between mb-2">
+                          <span className="font-medium">
+                            Test Case {index + 1}
+                          </span>
+                          <span>
+                            {tc.passed ? "✅ Passed" : "❌ Failed"}
+                          </span>
+                        </div>
+
+                        {!tc.isHidden ? (
+                          <>
+                            <p className="text-sm">
+                              <strong>Expected:</strong>{" "}
+                              <span className="text-green-400">
+                                {tc.expected}
+                              </span>
+                            </p>
+
+                            <p className="text-sm">
+                              <strong>Your Output:</strong>{" "}
+                              <span className="text-yellow-400">
+                                {tc.actual}
+                              </span>
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            Hidden Test Case
+                          </p>
+                        )}
+                      </div>
+                    )
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* NAV */}
           <div className="mt-6 flex gap-2">
             <button
-              onClick={handlePrev}
+              onClick={prev}
               disabled={currentIndex === 0}
-              className="px-4 py-2 border rounded"
+              className="btn-secondary"
             >
               Prev
             </button>
 
             <button
-              onClick={handleNext}
+              onClick={next}
               disabled={
                 currentIndex === assessment.questions.length - 1
               }
-              className="px-4 py-2 border rounded"
+              className="btn-secondary"
             >
               Next
             </button>
@@ -168,20 +280,45 @@ export default function SolveAssessment() {
         </div>
 
         {/* CODE EDITOR */}
-        {currentQuestion.type === "CODING" && (
-          <div className="w-full md:w-1/2 border-l">
+        {q.type === "CODING" && (
+          <div className="card-elevated p-2">
+
+            {/* LANGUAGE SELECTOR */}
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              className="mb-2 input-field"
+            >
+              <option value="javascript">JavaScript</option>
+              <option value="python">Python</option>
+              <option value="cpp">C++</option>
+              <option value="c">C</option>
+              <option value="java">Java</option>
+            </select>
+
             <CodeEditor
-              code={codes[currentQuestion.id] || ""}
-              setCode={(val: string) =>
+              code={codes[q.id]}
+              setCode={(val) =>
                 setCodes((prev) => ({
                   ...prev,
-                  [currentQuestion.id]: val,
+                  [q.id]: val,
                 }))
               }
-              language="javascript"
+              language={language}
             />
           </div>
         )}
+      </div>
+
+      {/* SUBMIT */}
+      <div className="mt-6 text-center">
+        <button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="btn-primary px-6 py-2"
+        >
+          {submitting ? "Submitting..." : "Submit Assessment"}
+        </button>
       </div>
     </div>
   );

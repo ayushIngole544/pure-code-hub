@@ -2,57 +2,69 @@ import prisma from "../config/prisma";
 
 export const getLeaderboard = async () => {
 
-  // 🔥 Get all ACCEPTED submissions
+  // 🔥 Get all submissions
   const submissions = await prisma.submission.findMany({
-    where: {
-      status: "ACCEPTED",
-    },
     include: {
       user: true,
     },
   });
 
   // =============================
-  // 🔥 MAP: userId → Set of problems
+  // 🔥 MAP: userId → stats
   // =============================
-
-  const solvedMap: Record<
+  const userStats: Record<
     string,
     {
       userId: string;
+      name: string;
       email: string;
       problems: Set<string>;
+      totalSubmissions: number;
+      acceptedSubmissions: number;
     }
   > = {};
 
   for (const sub of submissions) {
     const userId = sub.userId;
 
-    if (!solvedMap[userId]) {
-      solvedMap[userId] = {
+    if (!userStats[userId]) {
+      userStats[userId] = {
         userId,
+        name: sub.user?.name || sub.user?.email?.split("@")[0] || "Unknown",
         email: sub.user?.email || "Unknown",
         problems: new Set(),
+        totalSubmissions: 0,
+        acceptedSubmissions: 0,
       };
     }
 
-    // ✅ add unique problem
-    if (sub.problemId) {
-      solvedMap[userId].problems.add(sub.problemId);
+    userStats[userId].totalSubmissions++;
+
+    if (sub.status === "ACCEPTED") {
+      userStats[userId].acceptedSubmissions++;
+      // Track unique solved problems
+      if (sub.problemId) {
+        userStats[userId].problems.add(sub.problemId);
+      }
     }
   }
 
   // =============================
   // 🔥 CONVERT TO ARRAY + SORT
   // =============================
-
-  const leaderboard = Object.values(solvedMap)
+  const leaderboard = Object.values(userStats)
     .map((user) => ({
       userId: user.userId,
+      name: user.name,
       email: user.email,
-      score: user.problems.size, // ✅ UNIQUE COUNT
+      score: user.problems.size,
+      totalSolved: user.problems.size,
+      totalSubmissions: user.totalSubmissions,
+      successRate: user.totalSubmissions > 0
+        ? Math.round((user.acceptedSubmissions / user.totalSubmissions) * 100)
+        : 0,
     }))
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => b.score - a.score || b.successRate - a.successRate)
     .map((user, index) => ({
       rank: index + 1,
       ...user,

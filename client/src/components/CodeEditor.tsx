@@ -193,7 +193,7 @@ export function CodeEditor({
 
           {/* TEST CASES */}
           <div className="flex-1 p-3 overflow-auto">
-            <button onClick={addTestCase} className="text-xs text-primary mb-3">
+            <button onClick={addTestCase} className="text-xs text-white mb-3">
               + Add Testcase
             </button>
 

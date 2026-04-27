@@ -1,29 +1,29 @@
 import { api } from "./api";
 
 export const getAssessments = async () => {
-  const res = await api.get("/assignments");
+  const res = await api.get("/assessments");
   return res.data;
 };
 
-// 🧩 CREATE FULL ASSIGNMENT
+// 🧩 CREATE FULL ASSESSMENT
 export const createAssessment = async (data: any) => {
-  const res = await api.post("/assignments/create-full", data);
+  const res = await api.post("/assessments/create-full", data);
   return res.data;
 };
 
-// 🧩 PUBLISH ASSIGNMENT
+// 🧩 PUBLISH ASSESSMENT
 export const publishAssessment = async (id: string) => {
-  const res = await api.post(`/assignments/${id}/publish`);
+  const res = await api.post(`/assessments/${id}/publish`);
   return res.data;
 };
 
 export const getAssessmentWithQuestions = async (id: string) => {
-  const res = await api.get(`/assignments/${id}`);
+  const res = await api.get(`/assessments/${id}`);
   return res.data;
 };
 
 // 🏆 GET LEADERBOARD
 export const getLeaderboard = async (id: string) => {
-  const res = await api.get(`/assignments/${id}/leaderboard`);
+  const res = await api.get(`/assessments/${id}/leaderboard`);
   return res.data;
-};
+};

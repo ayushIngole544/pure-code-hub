@@ -22,8 +22,7 @@ interface WorkspaceNote {
   id: string;
   title: string;
   content: string | null;
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
 }
 
 export default function TeacherWorkspace() {
@@ -104,7 +103,6 @@ export default function TeacherWorkspace() {
               ...n,
               title: editTitle,
               content: editContent,
-              updated_at: new Date().toISOString(),
             }
           : n
       );

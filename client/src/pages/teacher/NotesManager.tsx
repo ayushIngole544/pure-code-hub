@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, FileText, Upload } from "lucide-react";
+import { api } from "@/services/api";
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:4000";
 
 export default function NotesManager() {
   const { user } = useAuth();
@@ -12,11 +15,8 @@ export default function NotesManager() {
 
   const fetchNotes = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/notes", {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-      });
-      const data = await res.json();
-      setNotes(data.notes || []);
+      const res = await api.get("/notes");
+      setNotes(res.data.notes || []);
     } catch {}
   };
 
@@ -35,12 +35,8 @@ export default function NotesManager() {
     if (file) formData.append("file", file);
 
     try {
-      await fetch("http://localhost:5000/api/notes/create", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: formData,
+      await api.post("/notes/create", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
       fetchNotes();
       setTitle("");
@@ -79,7 +75,7 @@ export default function NotesManager() {
             <h3 className="font-bold text-lg">{note.title}</h3>
             <p className="text-muted-foreground mt-2 line-clamp-3">{note.content}</p>
             {note.fileUrl && (
-              <a href={`http://localhost:5000${note.fileUrl}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm font-medium flex gap-1 items-center mt-4 pt-4 border-t border-border">
+              <a href={`${API_BASE}${note.fileUrl}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm font-medium flex gap-1 items-center mt-4 pt-4 border-t border-border">
                 <FileText className="w-4 h-4" /> Download Attached File
               </a>
             )}

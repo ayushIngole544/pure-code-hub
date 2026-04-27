@@ -24,7 +24,7 @@ export function useBookmarks() {
       const res = await getBookmarks();
 
       // ✅ SAFE RESPONSE HANDLING
-      const bookmarks = res?.data?.bookmarks || [];
+      const bookmarks = res?.bookmarks || [];
 
       const ids = bookmarks.map((b: any) => b.assessmentId);
 

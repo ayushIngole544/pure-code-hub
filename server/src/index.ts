@@ -1,12 +1,16 @@
 import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import leaderboardRoutes from "./routes/leaderboard.routes";
+import path from "path";
 
-// 🔹 Load env variables
 dotenv.config();
 
-// 🔹 Routes
+const app = express();
+const port = process.env.PORT || 4000;
+
+// ==============================
+// 🔹 ROUTES IMPORT
+// ==============================
 import authRoutes from "./routes/auth.routes";
 import problemsRoutes from "./routes/problems.routes";
 import assignmentRoutes from "./routes/assignment.routes";
@@ -15,33 +19,28 @@ import submissionRoutes from "./routes/submission.routes";
 import aiRoutes from "./routes/ai.routes";
 import noteRoutes from "./routes/note.routes";
 import notificationRoutes from "./routes/notification.routes";
+import bookmarkRoutes from "./routes/bookmark.routes";
+import workspaceRoutes from "./routes/workspace.routes";
+import userRoutes from "./routes/user.routes";
+import leaderboardRoutes from "./routes/leaderboard.routes";
 
-// 🔹 Middleware
+// ==============================
+// 🔹 MIDDLEWARE
+// ==============================
 import { errorHandler } from "./middlewares/error.middleware";
-import path from "path";
 
-const app = express();
-const port = process.env.PORT || 4000;
-
-// ==============================
-// 🔹 CORE MIDDLEWARES
-// ==============================
-
-// Enable CORS
-app.use(
-  cors({
-    origin: "*", // ⚠️ later restrict to frontend URL
-    methods: ["GET", "POST", "PUT", "DELETE"],
-  })
-);
-
-// Parse JSON body
+app.use(cors());
 app.use(express.json());
 
-// Serve static files for uploads
 app.use("/uploads", express.static(path.join(__dirname, "../../uploads")));
-// actually, let's keep it root-level:
-// Wait, path.join(__dirname, "../uploads") inside src would map to `server/uploads`
+
+// ==============================
+// 🔹 DEBUG ROUTE LOGGER (TEMP)
+// ==============================
+app.use((req, res, next) => {
+  console.log(`➡️ ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 // ==============================
 // 🔹 API ROUTES
@@ -49,13 +48,20 @@ app.use("/uploads", express.static(path.join(__dirname, "../../uploads")));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/problems", problemsRoutes);
+
+// 🔥 Dual support (good)
 app.use("/api/assignments", assignmentRoutes);
+app.use("/api/assessments", assignmentRoutes);
+
 app.use("/api/execute", executeRoutes);
 app.use("/api/submissions", submissionRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/bookmarks", bookmarkRoutes);
+app.use("/api/workspace", workspaceRoutes);
+app.use("/api/users", userRoutes);
 
 // ==============================
 // 🔹 HEALTH CHECK
@@ -80,7 +86,7 @@ app.use((req: Request, res: Response) => {
 });
 
 // ==============================
-// 🔹 GLOBAL ERROR HANDLER
+// 🔹 ERROR HANDLER
 // ==============================
 
 app.use(errorHandler);

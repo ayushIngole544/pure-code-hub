@@ -1,18 +1,15 @@
 import express from "express";
 import { signup, login } from "../controllers/auth.controller";
-import { authLimiter } from "../middlewares/rateLimiter.middleware";
-const router = express.Router();
 
-// 🔐 Apply rate limiter to all auth routes
-// router.use(authLimiter);
+const router = express.Router();
 
 // 🔐 Auth Routes
 router.post("/signup", signup);
 router.post("/login", login);
 
-// 🧪 Test route (optional)
+// 🧪 Test route
 router.get("/test", (req, res) => {
-  res.json({ message: "Auth route working" });
+  res.json({ success: true, message: "Auth working ✅" });
 });
 
 export default router;

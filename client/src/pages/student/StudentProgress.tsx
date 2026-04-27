@@ -9,18 +9,18 @@ export default function StudentProgress() {
   const { submissions, assessments } = useData();
 
   const mySubmissions = user
-    ? submissions.filter((s) => s.student_id === user.id)
+    ? submissions.filter((s) => s.userId === user.id)
     : [];
 
   const submissionsByDate = mySubmissions.reduce((acc, sub) => {
-    const date = new Date(sub.created_at).toLocaleDateString();
+    const date = new Date(sub.createdAt).toLocaleDateString();
     if (!acc[date]) acc[date] = [];
     acc[date].push(sub);
     return acc;
   }, {} as Record<string, typeof mySubmissions>);
 
   const correctSubmissions = mySubmissions.filter(
-    (s) => s.status === 'correct'
+    (s) => s.status === 'ACCEPTED'
   ).length;
 
   const accuracy =
@@ -84,10 +84,10 @@ export default function StudentProgress() {
                   <div key={sub.id} className="p-3 bg-secondary rounded mb-2">
                     <div className="flex justify-between">
                       <span>
-                        {getAssessmentTitle(sub.assessment_id)}
+                        {getAssessmentTitle(sub.assignmentId)}
                       </span>
                       <span>
-                        {sub.status === 'correct' ? '✅' : '❌'}
+                        {sub.status === 'ACCEPTED' ? '✅' : '❌'}
                       </span>
                     </div>
                   </div>

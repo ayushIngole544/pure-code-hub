@@ -23,14 +23,14 @@ export const submitQuestion = async (
   }
 };
 
-// 🔥 SUBMIT CODE (goes to queue)
+// 🔥 SUBMIT CODE (direct evaluation, no queue)
 export const submitCode = async (
   problemId: string,
   code: string,
   language: string
 ) => {
   try {
-    const res = await api.post("/submissions", {
+    const res = await api.post("/submissions/problem", {
       problemId,
       code,
       language,

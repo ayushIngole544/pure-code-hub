@@ -26,10 +26,21 @@ export const getAllProblems = async () => {
   });
 };
 
-// 🔍 Get Problem by ID
+// 🔍 Get Problem by ID (with test cases)
 export const getProblemById = async (id: string) => {
   const problem = await prisma.problem.findUnique({
     where: { id },
+    include: {
+      testCases: {
+        where: { isHidden: false },
+        select: {
+          id: true,
+          input: true,
+          expectedOutput: true,
+          isHidden: true,
+        },
+      },
+    },
   });
 
   if (!problem) {

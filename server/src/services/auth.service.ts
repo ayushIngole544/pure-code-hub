@@ -2,7 +2,7 @@ import prisma from "../config/prisma";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-// 🔐 Ensure JWT secret exists
+// 🔐 Ensure JWT exists
 if (!process.env.JWT_SECRET) {
   throw new Error("JWT_SECRET is not defined in environment variables");
 }
@@ -10,23 +10,24 @@ if (!process.env.JWT_SECRET) {
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // ==========================================
-// 🔐 SIGNUP SERVICE (FIXED)
+// 🔐 SIGNUP
 // ==========================================
 export const signup = async (
   email: string,
   password: string,
-  roleName: "STUDENT" | "TEACHER" | "PROFESSIONAL"
+  roleName: "STUDENT" | "TEACHER" | "PROFESSIONAL",
+  name?: string
 ) => {
-  // 🔹 Check existing user
   const existingUser = await prisma.user.findUnique({
     where: { email },
   });
 
   if (existingUser) {
-    throw new Error("User already exists");
+    const error: any = new Error("User already exists");
+    error.statusCode = 409;
+    throw error;
   }
 
-  // 🔹 Find or create role
   let role = await prisma.role.findUnique({
     where: { name: roleName },
   });
@@ -37,22 +38,18 @@ export const signup = async (
     });
   }
 
-  // 🔹 Hash password
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // 🔹 Create user
   const user = await prisma.user.create({
     data: {
       email,
       password: hashedPassword,
+      name: name || email.split("@")[0],
       roleId: role.id,
     },
-    include: {
-      role: true,
-    },
+    include: { role: true },
   });
 
-  // 🔥 CREATE TOKEN (IMPORTANT FIX)
   const token = jwt.sign(
     {
       userId: user.id,
@@ -62,17 +59,13 @@ export const signup = async (
     { expiresIn: "1d" }
   );
 
-  // 🔹 Remove password
   const { password: _, ...safeUser } = user;
 
-  return {
-    user: safeUser,
-    token, // 🔥 FIX
-  };
+  return { user: safeUser, token };
 };
 
 // ==========================================
-// 🔐 LOGIN SERVICE (UNCHANGED BUT CLEANED)
+// 🔐 LOGIN (FIXED)
 // ==========================================
 export const login = async (email: string, password: string) => {
   const user = await prisma.user.findUnique({
@@ -81,13 +74,17 @@ export const login = async (email: string, password: string) => {
   });
 
   if (!user) {
-    throw new Error("Invalid credentials");
+    const error: any = new Error("User not found");
+    error.statusCode = 404;
+    throw error;
   }
 
   const isPasswordValid = await bcrypt.compare(password, user.password);
 
   if (!isPasswordValid) {
-    throw new Error("Invalid credentials");
+    const error: any = new Error("Invalid credentials");
+    error.statusCode = 401;
+    throw error;
   }
 
   const token = jwt.sign(
@@ -101,8 +98,5 @@ export const login = async (email: string, password: string) => {
 
   const { password: _, ...safeUser } = user;
 
-  return {
-    user: safeUser,
-    token,
-  };
+  return { user: safeUser, token };
 };

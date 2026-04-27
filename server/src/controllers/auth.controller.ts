@@ -2,7 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import * as authService from "../services/auth.service";
 import { signupSchema, loginSchema } from "../validators/auth.validator";
 
-// 🔐 Signup Controller
+// ==========================================
+// 🔐 SIGNUP CONTROLLER
+// ==========================================
 export const signup = async (
   req: Request,
   res: Response,
@@ -11,16 +13,16 @@ export const signup = async (
   try {
     const data = signupSchema.parse(req.body);
 
-    // 🔥 FIX: get token also
     const result = await authService.signup(
       data.email,
       data.password,
-      data.role
+      data.role,
+      req.body.name
     );
 
     res.status(201).json({
       success: true,
-      token: result.token, // 🔥 IMPORTANT
+      token: result.token,
       user: result.user,
     });
   } catch (error) {
@@ -28,7 +30,9 @@ export const signup = async (
   }
 };
 
-// 🔐 Login Controller
+// ==========================================
+// 🔐 LOGIN CONTROLLER
+// ==========================================
 export const login = async (
   req: Request,
   res: Response,

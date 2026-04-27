@@ -131,7 +131,7 @@ router.get(
 
 router.get("/", authenticate, async (req, res, next) => {
   try {
-    const assignments = await getAllAssignments();
+    const assignments = await getAllAssignments((req as any).user);
 
     res.status(200).json({
       success: true,

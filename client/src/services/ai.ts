@@ -7,6 +7,21 @@ export type AIRequest = {
 };
 
 export const generateAIQuestion = async (data: AIRequest) => {
-  const res = await api.post("/ai/generate-question", data);
+  const token = localStorage.getItem("token");
+
+  if (!token) {
+    throw new Error("No auth token found");
+  }
+
+  const res = await api.post(
+    "/ai/generate-question",
+    data,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
   return res.data;
 };

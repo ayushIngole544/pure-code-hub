@@ -19,9 +19,7 @@ export default function StudentDashboard() {
   );
 
   const correct = mySubmissions.filter(
-    (s) =>
-      s.status === "ACCEPTED" ||
-      s.status === "correct"
+    (s) => s.status === "ACCEPTED"
   ).length;
 
   const total = mySubmissions.length;
@@ -134,9 +132,7 @@ export default function StudentDashboard() {
               );
 
               const correctSubs = subs.filter(
-                (s) =>
-                  s.status === "ACCEPTED" ||
-                  s.status === "correct"
+                (s) => s.status === "ACCEPTED"
               ).length;
 
               return (

@@ -19,6 +19,7 @@ import Profile from "./pages/Profile";
 // Teacher
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
 import TeacherAssessments from "./pages/teacher/TeacherAssessments";
+import TeacherViewAssessment from "./pages/teacher/TeacherViewAssessment"; // ✅ NEW
 import CreateAssessment from "./pages/teacher/CreateAssessment";
 import TeacherWorkspace from "./pages/teacher/TeacherWorkspace";
 import TeacherStudents from "./pages/teacher/TeacherStudents";
@@ -34,7 +35,7 @@ import ProfessionalDashboard from "./pages/professional/ProfessionalDashboard";
 import ProfessionalPractice from "./pages/professional/ProfessionalPractice";
 import ProfessionalChallenges from "./pages/professional/ProfessionalChallenges";
 import SolveChallenge from "./pages/professional/SolveChallenge";
-import ProfessionalEditor from "./pages/professional/ProfessionalEditor"; // ✅ NEW
+import ProfessionalEditor from "./pages/professional/ProfessionalEditor";
 
 // Notes
 import NotesManager from "./pages/teacher/NotesManager";
@@ -61,6 +62,7 @@ export default function App() {
             <Sonner />
 
             <Routes>
+
               {/* ================= PUBLIC ================= */}
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
@@ -76,6 +78,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/leaderboard/:id"
                 element={
@@ -99,6 +102,7 @@ export default function App() {
               />
 
               {/* ================= TEACHER ================= */}
+
               <Route
                 path="/teacher/dashboard"
                 element={
@@ -116,6 +120,18 @@ export default function App() {
                   <ProtectedRoute allowedRoles={["teacher"]}>
                     <AppLayout>
                       <TeacherAssessments />
+                    </AppLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* 🔥 FIXED: VIEW SINGLE ASSESSMENT */}
+              <Route
+                path="/teacher/assessments/:id"
+                element={
+                  <ProtectedRoute allowedRoles={["teacher"]}>
+                    <AppLayout>
+                      <TeacherViewAssessment />
                     </AppLayout>
                   </ProtectedRoute>
                 }
@@ -153,6 +169,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/teacher/notes"
                 element={
@@ -165,6 +182,7 @@ export default function App() {
               />
 
               {/* ================= STUDENT ================= */}
+
               <Route
                 path="/student/dashboard"
                 element={
@@ -208,6 +226,7 @@ export default function App() {
                   </ProtectedRoute>
                 }
               />
+
               <Route
                 path="/student/notes"
                 element={
@@ -220,6 +239,7 @@ export default function App() {
               />
 
               {/* ================= PROFESSIONAL ================= */}
+
               <Route
                 path="/professional/dashboard"
                 element={
@@ -242,7 +262,6 @@ export default function App() {
                 }
               />
 
-              {/* 🔥 NEW EDITOR ROUTE */}
               <Route
                 path="/professional/editor"
                 element={
@@ -278,8 +297,8 @@ export default function App() {
 
               {/* ================= 404 ================= */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
 
+            </Routes>
           </TooltipProvider>
         </DataProvider>
       </AuthProvider>

@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import { FileText, Download } from "lucide-react";
+import { api } from "@/services/api";
+
+const API_BASE = import.meta.env.VITE_API_URL?.replace("/api", "") || "http://localhost:4000";
 
 export default function StudentNotes() {
   const [notes, setNotes] = useState<any[]>([]);
@@ -8,11 +11,8 @@ export default function StudentNotes() {
   useEffect(() => {
     async function fetchNotes() {
       try {
-        const res = await fetch("http://localhost:5000/api/notes", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        });
-        const data = await res.json();
-        setNotes(data.notes || []);
+        const res = await api.get("/notes");
+        setNotes(res.data.notes || []);
       } catch (err) {
         console.error("Failed to fetch notes", err);
       } finally {
@@ -37,7 +37,7 @@ export default function StudentNotes() {
               <h3 className="font-bold text-lg">{note.title}</h3>
               <p className="text-muted-foreground mt-2">{note.content}</p>
               {note.fileUrl && (
-                <a href={`http://localhost:5000${note.fileUrl}`} target="_blank" rel="noopener noreferrer" className="btn-secondary w-full justify-center flex gap-2 items-center mt-6">
+                <a href={`${API_BASE}${note.fileUrl}`} target="_blank" rel="noopener noreferrer" className="btn-secondary w-full justify-center flex gap-2 items-center mt-6">
                   <Download className="w-4 h-4" /> Download Attached File
                 </a>
               )}

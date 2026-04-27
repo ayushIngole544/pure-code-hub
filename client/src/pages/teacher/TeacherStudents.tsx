@@ -14,20 +14,20 @@ export default function TeacherStudents() {
 
   // 🔥 FILTER TEACHER ASSESSMENTS
   const myAssessments = assessments.filter(
-    (a) => a.created_by === user?.id
+    (a) => a.teacherId === user?.id
   );
 
   const assessmentIds = myAssessments.map((a) => a.id);
 
   // 🔥 FILTER SUBMISSIONS
   const studentSubmissions = submissions.filter((s) =>
-    assessmentIds.includes(s.assessment_id)
+    assessmentIds.includes(s.assignmentId)
   );
 
   // 🔥 FETCH STUDENT NAMES FROM BACKEND
   useEffect(() => {
     const studentIds = [
-      ...new Set(studentSubmissions.map((s) => s.student_id)),
+      ...new Set(studentSubmissions.map((s) => s.userId)),
     ];
 
     if (studentIds.length === 0) return;
@@ -53,25 +53,25 @@ export default function TeacherStudents() {
 
   // 🔥 CALCULATE STATS
   const studentStats = studentSubmissions.reduce((acc, sub) => {
-    if (!acc[sub.student_id]) {
-      acc[sub.student_id] = {
+    if (!acc[sub.userId]) {
+      acc[sub.userId] = {
         total: 0,
         correct: 0,
         wrong: 0,
-        lastSubmission: sub.created_at,
+        lastSubmission: sub.createdAt,
       };
     }
 
-    acc[sub.student_id].total++;
+    acc[sub.userId].total++;
 
-    if (sub.status === "ACCEPTED") acc[sub.student_id].correct++;
-    else acc[sub.student_id].wrong++;
+    if (sub.status === "ACCEPTED") acc[sub.userId].correct++;
+    else acc[sub.userId].wrong++;
 
     if (
-      new Date(sub.created_at) >
-      new Date(acc[sub.student_id].lastSubmission)
+      new Date(sub.createdAt) >
+      new Date(acc[sub.userId].lastSubmission)
     ) {
-      acc[sub.student_id].lastSubmission = sub.created_at;
+      acc[sub.userId].lastSubmission = sub.createdAt;
     }
 
     return acc;
