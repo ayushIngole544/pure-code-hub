@@ -160,21 +160,30 @@ router.patch(
 // =======================================
 // 📄 GET SINGLE ASSIGNMENT
 // =======================================
+router.get("/:id", authenticate, async (req, res, next) => {
+  try {
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: req.params.id as string },
 
-const assignment = await prisma.assignment.findUnique({
-  where: { id: req.params.id as string },
-
-  include: {
-    questions: {
       include: {
-        problem: {
+        questions: {
           include: {
-            testCases: true
+            problem: {
+              include: {
+                testCases: true
+              }
+            }
           }
         }
       }
-    }
+    });
+
+    res.status(200).json({
+      success: true,
+      assignment,
+    });
+  } catch (err) {
+    next(err);
   }
 });
-
 export default router;
