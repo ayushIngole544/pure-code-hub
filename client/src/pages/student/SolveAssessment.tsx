@@ -4,10 +4,13 @@ import { useData } from "@/contexts/DataContext";
 import { CodeEditor } from "@/components/CodeEditor";
 import { Loader2 } from "lucide-react";
 import { submitQuestion } from "@/services/submission";
+import { getAssignmentLeaderboard } from "@/services/assessment";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function SolveAssessment() {
   const { id } = useParams<{ id: string }>();
   const { getAssessmentWithQuestions } = useData();
+  const { user } = useAuth();
 
   const [assessment, setAssessment] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -20,6 +23,11 @@ export default function SolveAssessment() {
   const [results, setResults] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
 
+  // 🔥 NEW STATES
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const [myScore, setMyScore] = useState(0);
+  const [rank, setRank] = useState<number | null>(null);
+
   // =========================
   // FETCH ASSESSMENT
   // =========================
@@ -27,9 +35,14 @@ export default function SolveAssessment() {
     if (!id) return;
 
     getAssessmentWithQuestions(id)
-      .then((res: any) => {
+      .then(async (res: any) => {
         const a = res.assignment || res;
+
         setAssessment(a);
+
+        // 🔥 LOCK DATA
+        setAlreadySubmitted(res.alreadySubmitted || false);
+        setMyScore(res.myScore || 0);
 
         const ansMap: any = {};
         const codeMap: any = {};
@@ -41,6 +54,16 @@ export default function SolveAssessment() {
 
         setAnswers(ansMap);
         setCodes(codeMap);
+
+        // 🔥 FETCH RANK IF SUBMITTED
+        if (res.alreadySubmitted) {
+          const lb = await getAssignmentLeaderboard(id);
+          const my = lb.leaderboard.find(
+            (x: any) => x.userId === user?.id
+          );
+
+          if (my) setRank(my.rank);
+        }
       })
       .catch((err) => {
         console.error("Error loading assessment:", err);
@@ -77,41 +100,37 @@ export default function SolveAssessment() {
     return <div>No questions available</div>;
 
   const q = assessment.questions[currentIndex];
-  console.log("FULL QUESTION:", q);
-console.log("PROBLEM:", q?.problem);
-console.log("TESTCASES:", q?.problem?.testCases);
 
   // =========================
   // SUBMIT
   // =========================
   const handleSubmit = async () => {
+    if (alreadySubmitted) {
+      alert("You have already submitted this assessment");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
-      const allResults: Record<string, any> = {};
+      const res = await submitQuestion(assessment.id, "FINAL", {
+        answers,
+        codes,
+        language,
+      });
 
-      for (const ques of assessment.questions) {
-        let res;
+      alert("Assessment submitted successfully!");
+      setAlreadySubmitted(true);
+      setMyScore(res.score || 0);
 
-        if (ques.type === "CODING") {
-          if (!codes[ques.id]) continue;
+      // 🔥 FETCH RANK AFTER SUBMIT
+      const lb = await getAssignmentLeaderboard(id);
+      const my = lb.leaderboard.find(
+        (x: any) => x.userId === user?.id
+      );
 
-          res = await submitQuestion(assessment.id, ques.id, {
-            code: codes[ques.id],
-            language,
-          });
-        } else {
-          if (!answers[ques.id]) continue;
+      if (my) setRank(my.rank);
 
-          res = await submitQuestion(assessment.id, ques.id, {
-            answer: answers[ques.id],
-          });
-        }
-
-        allResults[ques.id] = res;
-      }
-
-      setResults(allResults);
     } catch (err: any) {
       alert(err.message || "Submission failed");
     }
@@ -144,6 +163,23 @@ console.log("TESTCASES:", q?.problem?.testCases);
         </p>
       </div>
 
+      {/* 🔥 SUBMISSION STATUS */}
+      {alreadySubmitted && (
+        <div className="card-elevated p-4 mb-6 text-center">
+          <h2 className="text-lg font-semibold text-green-500">
+            You have already submitted this assessment
+          </h2>
+          <p className="text-sm mt-1">
+            Score: {myScore}
+          </p>
+          {rank && (
+            <p className="text-sm text-yellow-500 mt-1">
+              Rank: #{rank}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="grid md:grid-cols-[40%_60%] gap-4">
 
         {/* QUESTION PANEL */}
@@ -157,15 +193,14 @@ console.log("TESTCASES:", q?.problem?.testCases);
             {q.description}
           </p>
 
-          {/* =========================
-              MCQ (FIXED KEY BUG)
-          ========================= */}
+          {/* MCQ */}
           {q.type === "MCQ" &&
             q.options?.map((opt: string, idx: number) => (
               <label key={`${q.id}-${idx}`} className="block mb-2">
                 <input
                   type="radio"
                   checked={answers[q.id] === opt}
+                  disabled={alreadySubmitted}
                   onChange={() =>
                     setAnswers((prev) => ({
                       ...prev,
@@ -181,6 +216,7 @@ console.log("TESTCASES:", q?.problem?.testCases);
           {q.type === "NAT" && (
             <input
               value={answers[q.id]}
+              disabled={alreadySubmitted}
               onChange={(e) =>
                 setAnswers((prev) => ({
                   ...prev,
@@ -192,92 +228,15 @@ console.log("TESTCASES:", q?.problem?.testCases);
             />
           )}
 
-          {/* RESULT */}
-          {results[q.id] && (
-            <div className="mt-6">
-
-              <div className="p-3 rounded bg-muted mb-4">
-                <p className="font-semibold">
-                  Status:{" "}
-                  <span
-                    className={
-                      results[q.id].status === "ACCEPTED"
-                        ? "text-green-500"
-                        : "text-red-500"
-                    }
-                  >
-                    {results[q.id].status}
-                  </span>
-                </p>
-
-                <p>Score: {results[q.id].score}</p>
-              </div>
-
-              {results[q.id].results && (
-                <div className="space-y-3">
-                  {results[q.id].results.map(
-                    (tc: any, index: number) => (
-                      <div
-                        key={index}
-                        className={`p-3 rounded border ${
-                          tc.passed
-                            ? "border-green-500 bg-green-500/10"
-                            : "border-red-500 bg-red-500/10"
-                        }`}
-                      >
-                        <div className="flex justify-between mb-2">
-                          <span className="font-medium">
-                            Test Case {index + 1}
-                          </span>
-                          <span>
-                            {tc.passed ? "✅ Passed" : "❌ Failed"}
-                          </span>
-                        </div>
-
-                        {!tc.isHidden ? (
-                          <>
-                            <p className="text-sm">
-                              <strong>Expected:</strong>{" "}
-                              <span className="text-green-400">
-                                {tc.expected}
-                              </span>
-                            </p>
-
-                            <p className="text-sm">
-                              <strong>Your Output:</strong>{" "}
-                              <span className="text-yellow-400">
-                                {tc.actual}
-                              </span>
-                            </p>
-                          </>
-                        ) : (
-                          <p className="text-sm text-muted-foreground">
-                            Hidden Test Case
-                          </p>
-                        )}
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
           {/* NAV */}
           <div className="mt-6 flex gap-2">
-            <button
-              onClick={prev}
-              disabled={currentIndex === 0}
-              className="btn-secondary"
-            >
+            <button onClick={prev} disabled={currentIndex === 0} className="btn-secondary">
               Prev
             </button>
 
             <button
               onClick={next}
-              disabled={
-                currentIndex === assessment.questions.length - 1
-              }
+              disabled={currentIndex === assessment.questions.length - 1}
               className="btn-secondary"
             >
               Next
@@ -291,6 +250,7 @@ console.log("TESTCASES:", q?.problem?.testCases);
 
             <select
               value={language}
+              disabled={alreadySubmitted}
               onChange={(e) => setLanguage(e.target.value)}
               className="mb-2 input-field"
             >
@@ -302,27 +262,21 @@ console.log("TESTCASES:", q?.problem?.testCases);
             </select>
 
             <CodeEditor
-  code={codes[q.id]}
-  setCode={(val) =>
-    setCodes((prev) => ({
-      ...prev,
-      [q.id]: val,
-    }))
-  }
-  language={language}
-
-  // 🔥 REAL TESTCASES FROM DB
-  testCases={
-  (q.problem?.testCases ||
-    q.problem?.testcases ||   // fallback
-    q.testCases ||            // fallback
-    []
-  ).map((tc: any) => ({
-    input: tc.input,
-    expectedOutput: tc.expectedOutput || tc.output,
-  }))
-}
-/>
+              code={codes[q.id]}
+              setCode={(val) =>
+                setCodes((prev) => ({
+                  ...prev,
+                  [q.id]: val,
+                }))
+              }
+              language={language}
+              testCases={
+                (q.problem?.testCases || []).map((tc: any) => ({
+                  input: tc.input,
+                  expectedOutput: tc.expectedOutput || tc.output,
+                }))
+              }
+            />
           </div>
         )}
       </div>
@@ -331,10 +285,14 @@ console.log("TESTCASES:", q?.problem?.testCases);
       <div className="mt-6 text-center">
         <button
           onClick={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || alreadySubmitted}
           className="btn-primary px-6 py-2"
         >
-          {submitting ? "Submitting..." : "Submit Assessment"}
+          {alreadySubmitted
+            ? "Already Submitted"
+            : submitting
+            ? "Submitting..."
+            : "Submit Assessment"}
         </button>
       </div>
     </div>

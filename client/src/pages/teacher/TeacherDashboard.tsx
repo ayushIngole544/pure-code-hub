@@ -34,8 +34,10 @@ export default function TeacherDashboard() {
   const correctSubmissions = mySubmissions.filter(
     (s) => s.status === "ACCEPTED"
   ).length;
-
-  const totalAttempts = mySubmissions.length;
+const totalAttempts = new Set(
+  mySubmissions.map((s) => `${s.userId}-${s.assignmentId}`)
+).size;
+  
   const wrongSubmissions = totalAttempts - correctSubmissions;
 
   return (

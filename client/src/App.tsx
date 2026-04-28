@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Routes, Route } from "react-router-dom";
 
+import LeaderboardList from "@/pages/teacher/LeaderboardList";
+import AssignmentLeaderboard from "@/pages/teacher/AssignmentLeaderboard";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DataProvider } from "@/contexts/DataContext";
 import { Navbar } from "@/components/Navbar";
@@ -168,7 +170,30 @@ export default function App() {
                     </AppLayout>
                   </ProtectedRoute>
                 }
-              />
+/>
+                {/* 🔥 LEADERBOARD SYSTEM (NEW) */}
+
+<Route
+  path="/teacher/leaderboard"
+  element={
+    <ProtectedRoute allowedRoles={["teacher"]}>
+      <AppLayout>
+        <LeaderboardList />
+      </AppLayout>
+    </ProtectedRoute>
+  }
+/>
+
+<Route
+  path="/teacher/leaderboard/:id"
+  element={
+    <ProtectedRoute allowedRoles={["teacher"]}>
+      <AppLayout>
+        <AssignmentLeaderboard />
+      </AppLayout>
+    </ProtectedRoute>
+  }
+/>
 
               <Route
                 path="/teacher/notes"

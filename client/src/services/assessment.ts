@@ -26,6 +26,15 @@ export const getAssessmentWithQuestions = async (id: string) => {
   const res = await api.get(`/assessments/${id}`);
   return res.data;
 };
+export const getLeaderboardList = async () => {
+  const res = await api.get("/assessments/leaderboard/list");
+  return res.data;
+};
+
+export const getAssignmentLeaderboard = async (id: string) => {
+  const res = await api.get(`/assessments/${id}/leaderboard`);
+  return res.data;
+};
 
 // ⏳ EXTEND DEADLINE
 export const extendDeadline = async (id: string, dueDate: string) => {

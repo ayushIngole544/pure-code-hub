@@ -1,29 +1,38 @@
 import { api } from "./api";
 
-// 🔥 SUBMIT QUESTION (Handles all types)
+// ==========================================
+// 🔥 SUBMIT FULL ASSESSMENT
+// ==========================================
 export const submitQuestion = async (
   assignmentId: string,
-  questionId: string,
-  data: { answer?: string; code?: string; language?: string }
+  _unused: any,
+  data: {
+    answers?: Record<string, string>;
+    codes?: Record<string, string>;
+    language?: string;
+  }
 ) => {
   try {
     const res = await api.post("/submissions/question", {
       assignmentId,
-      questionId,
-      ...data
+      ...data,
     });
+
     return res.data;
   } catch (error: any) {
-    console.error("Submit Question Error:", error);
+    console.error("Submit Error:", error);
+
     throw new Error(
       error?.response?.data?.message ||
-      error?.message ||
-      "Submission failed"
+        error?.message ||
+        "Submission failed"
     );
   }
 };
 
-// 🔥 SUBMIT CODE (direct evaluation, no queue)
+// ==========================================
+// 🔥 SUBMIT CODE (RESTORED)
+// ==========================================
 export const submitCode = async (
   problemId: string,
   code: string,
@@ -38,33 +47,19 @@ export const submitCode = async (
 
     return res.data;
   } catch (error: any) {
-    console.error("Submit Error:", error);
+    console.error("Submit Code Error:", error);
 
     throw new Error(
       error?.response?.data?.message ||
-      error?.message ||
-      "Submission failed"
+        error?.message ||
+        "Code submission failed"
     );
   }
 };
 
-// 🔥 GET SINGLE SUBMISSION (IMPORTANT FOR POLLING)
-export const getSubmission = async (id: string) => {
-  try {
-    const res = await api.get(`/submissions/${id}`);
-    return res.data;
-  } catch (error: any) {
-    console.error("Fetch Submission Error:", error);
-
-    throw new Error(
-      error?.response?.data?.message ||
-      error?.message ||
-      "Fetch failed"
-    );
-  }
-};
-
+// ==========================================
 // 🔥 GET ALL SUBMISSIONS
+// ==========================================
 export const getSubmissions = async () => {
   try {
     const res = await api.get("/submissions");
@@ -74,8 +69,8 @@ export const getSubmissions = async () => {
 
     throw new Error(
       error?.response?.data?.message ||
-      error?.message ||
-      "Fetch submissions failed"
+        error?.message ||
+        "Fetch submissions failed"
     );
   }
 };

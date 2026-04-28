@@ -18,11 +18,13 @@ export default function StudentDashboard() {
     (s) => s.userId === user?.id
   );
 
-  const correct = mySubmissions.filter(
-    (s) => s.status === "ACCEPTED"
-  ).length;
+    const uniqueAssessments = new Set(
+  mySubmissions.map((s) => s.assignmentId)
+);
 
-  const total = mySubmissions.length;
+const total = uniqueAssessments.size;
+
+const correct = total;
   const incorrect = total - correct;
 
   const accuracy =

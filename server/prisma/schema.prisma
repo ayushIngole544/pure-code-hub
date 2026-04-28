@@ -49,7 +49,7 @@ model Problem {
   createdBy   String
   createdAt   DateTime @default(now())
 
-  marks       Int      @default(10)
+  marks Int @default(10)
 
   creator     User                @relation("CreatedProblems", fields: [createdBy], references: [id])
   submissions Submission[]
@@ -57,7 +57,7 @@ model Problem {
   testCases   TestCase[]
 
   // 🔥 ADD THIS
-  questions   Question[]
+  questions Question[]
 }
 
 //
@@ -84,12 +84,15 @@ model Assignment {
   isPublished Boolean  @default(false)
   createdAt   DateTime @default(now())
 
-  teacher  User                @relation("TeacherAssignments", fields: [teacherId], references: [id])
-  problems AssignmentProblem[]
-  students AssignmentStudent[]
+  teacher   User                @relation("TeacherAssignments", fields: [teacherId], references: [id])
+  problems  AssignmentProblem[]
+  students  AssignmentStudent[]
   questions Question[]
 
   notes Note[]
+
+  // 🔥 ADD THIS (REQUIRED)
+  submissions Submission[]
 }
 
 //
@@ -100,8 +103,8 @@ model AssignmentProblem {
   assignmentId String
   problemId    String
 
-  assignment Assignment @relation(fields: [assignmentId], references: [id])
-  problem    Problem    @relation(fields: [problemId], references: [id])
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  problem    Problem    @relation(fields: [problemId], references: [id], onDelete: Cascade)
 
   @@unique([assignmentId, problemId])
 }
@@ -110,60 +113,65 @@ model AssignmentProblem {
 // 🧩 Question Model
 //
 model Question {
-  id            String   @id @default(uuid())
-  assignmentId  String
-  type          QuestionType
-  title         String
-  description   String
+  id           String       @id @default(uuid())
+  assignmentId String
+  type         QuestionType
+  title        String
+  description  String
 
-  // MCQ
   options       Json?
   correctAnswer String?
 
-  // CODING
-  problemId     String?
+  problemId String?
 
-  // 🔥 ADD THIS LINE (CRITICAL)
-  problem       Problem? @relation(fields: [problemId], references: [id])
+  problem Problem? @relation(fields: [problemId], references: [id])
 
-  marks         Int
+  marks Int
 
-  assignment Assignment @relation(fields: [assignmentId], references: [id])
+  assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  // 🔥 ADD THIS
+  submissions Submission[]
 }
 
 //
 // 🧪 Submission Model
 //
 model Submission {
-  id           String   @id @default(uuid())
-  userId       String
+  id     String @id @default(uuid())
+  userId String
+
   problemId    String?
   assignmentId String?
   questionId   String?
 
-  code      String?
-  answer    String?
+  code   String?
+  answer String?
 
-  language  String?
-  status    SubmissionStatus @default(PENDING)
-  score     Int?
+  language String?
+  status   SubmissionStatus @default(PENDING)
+  score    Int?
 
   createdAt DateTime @default(now())
 
-  user    User     @relation(fields: [userId], references: [id])
-  problem Problem? @relation(fields: [problemId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  // 🔥 ADD CASCADE RELATIONS
+  problem    Problem?    @relation(fields: [problemId], references: [id], onDelete: Cascade)
+  assignment Assignment? @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  question   Question?   @relation(fields: [questionId], references: [id], onDelete: Cascade)
 }
 
 //
 // 👨‍🎓 Assignment ↔ Student
 //
 model AssignmentStudent {
-  id           String   @id @default(uuid())
+  id           String           @id @default(uuid())
   assignmentId String
   studentId    String
   status       AssignmentStatus @default(PENDING)
   score        Int?
-  createdAt    DateTime @default(now())
+  createdAt    DateTime         @default(now())
 
   assignment Assignment @relation(fields: [assignmentId], references: [id])
   student    User       @relation(fields: [studentId], references: [id])
@@ -187,15 +195,15 @@ model Bookmark {
 // 📝 NOTES SYSTEM
 //
 model Note {
-  id          String   @id @default(uuid())
-  teacherId   String
+  id           String   @id @default(uuid())
+  teacherId    String
   assignmentId String?
-  title       String
-  content     String?
-  fileUrl     String?
-  createdAt   DateTime @default(now())
+  title        String
+  content      String?
+  fileUrl      String?
+  createdAt    DateTime @default(now())
 
-  teacher User @relation(fields: [teacherId], references: [id])
+  teacher    User        @relation(fields: [teacherId], references: [id])
   assignment Assignment? @relation(fields: [assignmentId], references: [id])
 }
 

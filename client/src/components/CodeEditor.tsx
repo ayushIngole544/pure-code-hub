@@ -1,6 +1,6 @@
-// ONLY CHANGES: boilerplate + width + external testcases support
+// ONLY CHANGES: FIXED BOILERPLATE SWITCHING
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Editor from "@monaco-editor/react";
 import { Play, Send } from "lucide-react";
 import { api } from "@/services/api";
@@ -16,8 +16,6 @@ type Props = {
   setCode: (value: string) => void;
   onSubmit?: (code: string) => void;
   submitting?: boolean;
-
-  // 🔥 NEW
   testCases?: TestCase[];
 };
 
@@ -27,12 +25,11 @@ export function CodeEditor({
   setCode,
   onSubmit,
   submitting,
-  testCases = [], // 🔥 from SolveAssessment
+  testCases = [],
 }: Props) {
   const [output, setOutput] = useState("");
   const [running, setRunning] = useState(false);
   const [input, setInput] = useState("");
-  const [ghostText, setGhostText] = useState("");
 
   // =========================
   // 🔥 BOILERPLATES
@@ -75,18 +72,26 @@ public class Main {
 }`,
   };
 
-  // 🔥 inject boilerplate ONLY if empty
+  // =========================
+  // 🔥 FIXED LANGUAGE SWITCH
+  // =========================
+  const prevLang = useRef(language);
+
   useEffect(() => {
-    if (!code) {
+    if (prevLang.current !== language) {
       setCode(boilerplates[language] || "");
+      prevLang.current = language;
     }
   }, [language]);
 
+  // =========================
+  // LANGUAGE MAP
+  // =========================
   const languageMap: Record<string, string> = {
     javascript: "javascript",
     python: "python",
     cpp: "cpp",
-    c: "cpp",
+    c: "c", // 🔥 FIX (you had cpp here before)
     java: "java",
   };
 
@@ -141,7 +146,7 @@ public class Main {
 
       <div className="flex flex-1">
 
-        {/* 🔥 EDITOR BIGGER */}
+        {/* EDITOR */}
         <div className="relative w-[70%]">
           <Editor
             height="100%"
@@ -159,7 +164,7 @@ public class Main {
           />
         </div>
 
-        {/* 🔥 TESTCASES PANEL */}
+        {/* TESTCASES */}
         <div className="w-[30%] bg-[#020617] border-l border-gray-700 flex flex-col">
 
           <div className="p-3 border-b border-gray-700">
@@ -187,4 +192,4 @@ public class Main {
       </div>
     </div>
   );
-} 
+}

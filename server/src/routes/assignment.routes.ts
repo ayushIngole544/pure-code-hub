@@ -3,8 +3,8 @@ import {
   createAssignment,
   createAssignmentFull,
   publishAssignment,
-  deleteAssignment,     // ✅ ADD THIS
-  extendDeadline,       // ✅ ADD THIS
+  deleteAssignment,
+  extendDeadline,
 } from "../controllers/assignment.controller";
 import { getAllAssignments } from "../services/assignment.service";
 import { fetchAssignmentLeaderboard } from "../controllers/leaderboard.controller";
@@ -46,7 +46,41 @@ router.post(
 );
 
 // =======================================
-// 🏆 LEADERBOARD
+// 🏆 LEADERBOARD LIST (🔥 MUST BE ABOVE :id)
+// =======================================
+
+router.get(
+  "/leaderboard/list",
+  authenticate,
+  authorizeRoles("TEACHER"),
+  async (req, res, next) => {
+    try {
+      const teacherId = (req as any).user.userId;
+
+      const assignments = await prisma.assignment.findMany({
+        where: { teacherId },
+        select: {
+          id: true,
+          title: true,
+          createdAt: true,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      res.status(200).json({
+        success: true,
+        assignments,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// =======================================
+// 🏆 ASSIGNMENT LEADERBOARD
 // =======================================
 
 router.get(
@@ -70,7 +104,7 @@ router.get(
       const assignments = await prisma.assignment.findMany({
         where: {
           teacherId,
-          isPublished: false, // 🔥 ONLY DRAFTS
+          isPublished: false,
         },
         include: {
           questions: true,
@@ -144,12 +178,21 @@ router.get("/", authenticate, async (req, res, next) => {
   }
 });
 
+// =======================================
+// 🗑 DELETE ASSIGNMENT
+// =======================================
+
 router.delete(
   "/:id",
   authenticate,
   authorizeRoles("TEACHER"),
   deleteAssignment
 );
+
+// =======================================
+// ⏰ EXTEND DEADLINE
+// =======================================
+
 router.patch(
   "/:id/extend",
   authenticate,
@@ -158,32 +201,47 @@ router.patch(
 );
 
 // =======================================
-// 📄 GET SINGLE ASSIGNMENT
+// 📄 GET SINGLE ASSIGNMENT (🔥 KEEP LAST)
 // =======================================
+
 router.get("/:id", authenticate, async (req, res, next) => {
   try {
-    const assignment = await prisma.assignment.findUnique({
-      where: { id: req.params.id as string },
+    const userId = (req as any).user.userId;
+    const assignmentId = req.params.id as string;
 
+    const assignment = await prisma.assignment.findUnique({
+      where: { id: assignmentId },
       include: {
         questions: {
           include: {
             problem: {
               include: {
-                testCases: true
-              }
-            }
-          }
-        }
-      }
+                testCases: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // 🔥 CHECK SUBMISSION
+    const submission = await prisma.submission.findFirst({
+      where: {
+        assignmentId,
+        userId,
+      },
     });
 
     res.status(200).json({
       success: true,
       assignment,
+      alreadySubmitted: !!submission,
+      myScore: submission?.score || 0,
     });
+
   } catch (err) {
     next(err);
   }
 });
+
 export default router;
